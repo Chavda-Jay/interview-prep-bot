@@ -1,5 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import sys
+import os
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from database.mongo_client import connect_db
 
 app = FastAPI(title="Interview Prep Bot API", version="1.0.0")
 
@@ -10,6 +16,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.on_event("startup")
+async def startup_event():
+    connect_db()
 
 @app.get("/")
 def root():
