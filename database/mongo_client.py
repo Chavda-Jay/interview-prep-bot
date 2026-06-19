@@ -4,9 +4,10 @@ import os
 from dotenv import load_dotenv
 from pathlib import Path
 
-# Path fix
+# Load .env file for local development (on Render, env vars are set directly)
 env_path = Path(__file__).resolve().parent.parent / "config" / ".env"
-load_dotenv(dotenv_path=env_path)
+if env_path.exists():
+    load_dotenv(dotenv_path=env_path)
 
 MONGO_URI = os.getenv("MONGO_URI")
 MONGO_DB_NAME = os.getenv("MONGO_DB_NAME", "interview_prep")

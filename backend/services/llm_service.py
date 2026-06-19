@@ -6,8 +6,10 @@ import random
 import json
 import re
 
+# Load .env file for local development (on Render, env vars are set directly)
 env_path = Path(__file__).resolve().parent.parent.parent / "config" / ".env"
-load_dotenv(dotenv_path=env_path)
+if env_path.exists():
+    load_dotenv(dotenv_path=env_path)
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 client = Groq(api_key=GROQ_API_KEY)
