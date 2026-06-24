@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { submitAnswer, getNextQuestion, endInterview } from "../services/api";
 import { useTheme } from "../ThemeContext";
 // import CosmicBackground from "../components/CosmicBackground";
@@ -17,12 +17,48 @@ function Interview({ sessionData, onFinish }) {
     const [loading, setLoading] = useState(false);
     const [questionCount, setQuestionCount] = useState(1);
     const [submitHover, setSubmitHover] = useState(false);
+    // Timer
+    const TIMER_MAP = { beginner: 60, intermediate: 45, advanced: 30 };
+    const TOTAL_TIME = TIMER_MAP[sessionData?.level] || 60;
+    const [timeLeft, setTimeLeft] = useState(TOTAL_TIME);
+    const timerRef = useRef(null);
 
     const progress = Math.round((questionCount / TOTAL_QUESTIONS) * 100);
 
-    const handleSubmit = async () => {
-        if (questionType === "mcq" && !selectedOption) return alert("Please select an option!");
-        if (questionType === "descriptive" && !answer.trim()) return alert("Please write an answer!");
+    // Timer color
+    const timerColor = timeLeft > 30 ? "#10b981" : timeLeft > 10 ? "#f59e0b" : "#ef4444";
+    const timerPercent = (timeLeft / TOTAL_TIME) * 100;
+
+    const handleSubmitRef = useRef();
+
+    useEffect(() => {
+        handleSubmitRef.current = handleSubmit;
+    });
+
+    // Timer useEffect
+    useEffect(() => {
+        setTimeLeft(TOTAL_TIME);
+        timerRef.current = setInterval(() => {
+            setTimeLeft(prev => {
+                if (prev <= 1) {
+                    clearInterval(timerRef.current);
+                    if (handleSubmitRef.current) {
+                        handleSubmitRef.current(true);
+                    }
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+        return () => clearInterval(timerRef.current);
+    }, [questionCount, TOTAL_TIME]);
+
+    const handleSubmit = async (isAutoSubmit = false) => {
+        clearInterval(timerRef.current);
+        if (!isAutoSubmit) {
+            if (questionType === "mcq" && !selectedOption) return alert("Please select an option!");
+            if (questionType === "descriptive" && !answer.trim()) return alert("Please write an answer!");
+        }
 
         setLoading(true);
         try {
@@ -99,9 +135,40 @@ function Interview({ sessionData, onFinish }) {
                             {questionType === "mcq" ? "MCQ" : "Descriptive"}
                         </span>
                     </div>
-                    <span style={styles.qCounter}>
-                        Q{questionCount}<span style={styles.qTotal}>/{TOTAL_QUESTIONS}</span>
-                    </span>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                        {/* Timer Circle */}
+                        <div style={{ position: "relative", width: "52px", height: "52px" }}>
+                            <svg width="52" height="52" style={{ transform: "rotate(-90deg)" }}>
+                                <circle cx="26" cy="26" r="22"
+                                    fill="none"
+                                    stroke={isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.08)"}
+                                    strokeWidth="3"
+                                />
+                                <circle cx="26" cy="26" r="22"
+                                    fill="none"
+                                    stroke={timerColor}
+                                    strokeWidth="3"
+                                    strokeDasharray={`${2 * Math.PI * 22}`}
+                                    strokeDashoffset={`${2 * Math.PI * 22 * (1 - timerPercent / 100)}`}
+                                    strokeLinecap="round"
+                                    style={{ transition: "stroke-dashoffset 1s linear, stroke 0.3s ease" }}
+                                />
+                            </svg>
+                            <span style={{
+                                position: "absolute", top: "50%", left: "50%",
+                                transform: "translate(-50%, -50%)",
+                                fontSize: "13px", fontWeight: "800",
+                                fontFamily: "'JetBrains Mono', monospace",
+                                color: timerColor,
+                            }}>
+                                {timeLeft}
+                            </span>
+                        </div>
+                        {/* Q Counter */}
+                        <span style={styles.qCounter}>
+                            Q{questionCount}<span style={styles.qTotal}>/{TOTAL_QUESTIONS}</span>
+                        </span>
+                    </div>``
                 </div>
 
                 {/* Progress Bar */}
