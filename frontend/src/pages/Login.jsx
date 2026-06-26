@@ -66,7 +66,7 @@ function Login({ onSuccess }) {
             if (isForgot) {
                 const res = await resetPassword({ email, new_password: password });
                 if (res.data.success) {
-                    toast.success("Password reset successful! Please log in.");
+                    toast.success("Password reset successful! Please sign in.");
                     setIsForgot(false);
                     setPassword("");
                 } else {
@@ -83,10 +83,10 @@ function Login({ onSuccess }) {
                 if (res.data.success) {
                     if (isRegister) {
                         setIsRegister(false);
-                        toast.success("Registration successful! Please log in.");
+                        toast.success("Account created successfully! Please sign in.");
                         setPassword(""); // Clear password for security
                     } else {
-                        toast.success("Logged in successfully!");
+                        toast.success("Signed in successfully!");
                         login(res.data.data);
                         onSuccess();
                     }
@@ -135,7 +135,7 @@ function Login({ onSuccess }) {
                                 }}
                                 onClick={() => setIsRegister(false)}
                             >
-                                Login
+                                Sign In
                             </button>
                             <button
                                 style={{
@@ -144,7 +144,7 @@ function Login({ onSuccess }) {
                                 }}
                                 onClick={() => setIsRegister(true)}
                             >
-                                Register
+                                Sign Up
                             </button>
                         </div>
                     )}
@@ -244,11 +244,11 @@ function Login({ onSuccess }) {
                         {loading ? (
                             <span style={styles.btnContent}>
                                 <span style={styles.spinner} />
-                                {isForgot ? "Resetting..." : isRegister ? "Creating Account..." : "Logging in..."}
+                                {isForgot ? "Resetting..." : isRegister ? "Creating Account..." : "Signing in..."}
                             </span>
                         ) : (
                             <span style={styles.btnContent}>
-                                {isForgot ? "Reset Password" : isRegister ? "Create Account" : "Login"}
+                                {isForgot ? "Reset Password" : isRegister ? "Sign Up" : "Sign In"}
                             </span>
                         )}
                     </button>
@@ -284,7 +284,7 @@ function Login({ onSuccess }) {
                                     <path d="M19 12H5" />
                                     <path d="M12 19l-7-7 7-7" />
                                 </svg>
-                                Back to Login
+                                Back to Sign In
                             </span>
                         </div>
                     )}
