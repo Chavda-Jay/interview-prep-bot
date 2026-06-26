@@ -267,25 +267,10 @@ const getStyles = (isDark) => ({
     transition: "background 0.6s ease",
   },
   bgImage: {
-    position: "absolute",
-    inset: 0,
-    backgroundImage: "url('/ai-bg.png')",
-    backgroundSize: "cover",
-    backgroundPosition: "center",
-    backgroundRepeat: "no-repeat",
-    opacity: isDark ? 0.35 : 0.12,
-    mixBlendMode: isDark ? "screen" : "multiply",
-    transition: "opacity 0.6s ease",
-    zIndex: 0,
+    display: "none",
   },
   bgImageOverlay: {
-    position: "absolute",
-    inset: 0,
-    background: isDark
-      ? "radial-gradient(ellipse 80% 70% at 50% 50%, transparent 30%, rgba(5,6,11,0.7) 100%)"
-      : "radial-gradient(ellipse 80% 70% at 50% 50%, transparent 30%, rgba(245,247,250,0.8) 100%)",
-    zIndex: 0,
-    transition: "background 0.6s ease",
+    display: "none",
   },
   nebula1: {
     position: "absolute",

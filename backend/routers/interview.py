@@ -13,6 +13,7 @@ from services.llm_service import (
 import uuid
 from datetime import datetime
 import random
+from services.memory_service import save_user_memory, get_user_memory
 
 router = APIRouter(prefix="/interview", tags=["Interview"])
 
@@ -246,8 +247,43 @@ async def get_session(session_id: str):
 @router.post("/end/{session_id}")
 async def end_interview(session_id: str):
     db = get_db()
+    
+    # Session fetch karo
+    session = db["sessions"].find_one({"session_id": session_id})
+    
+    if session:
+        # Answers fetch karo
+        answers = list(db["answers"].find({"session_id": session_id}))
+        
+        # Weak areas collect karo
+        all_weak = []
+        for a in answers:
+            for w in a.get("weak_areas", []):
+                if w and w not in all_weak:
+                    all_weak.append(w)
+        
+        # Memory save karo
+        save_user_memory(
+            user_name=session.get("user_name", "Anonymous"),
+            skill=session.get("skill", ""),
+            level=session.get("level", ""),
+            score=session.get("score", 0),
+            total=session.get("total_questions", 10),
+            weak_areas=all_weak[:5]
+        )
+    
     db["sessions"].update_one(
         {"session_id": session_id},
-        {"$set": {"status": "completed", "ended_at": datetime.utcnow()}},
+        {"$set": {"status": "completed", "ended_at": datetime.utcnow()}}
     )
     return {"message": "Interview completed!", "session_id": session_id}
+
+    
+@router.get("/memory/{user_name}")
+async def get_memory(user_name: str):
+    """User ki memory fetch karo"""
+    from services.memory_service import get_user_progress
+    progress = get_user_progress(user_name)
+    if not progress:
+        return {"exists": False}
+    return {"exists": True, **progress}

@@ -66,7 +66,7 @@ function Interview({ sessionData, onFinish }) {
             const payload = {
                 session_id: sessionData.session_id,
                 question: question,
-                user_answer: questionType === "mcq" ? selectedOption : answer,
+                user_answer: questionType === "mcq" ? (selectedOption || "Time Out") : (answer || "Time Out"),
                 skill: sessionData.skill,
                 question_type: questionType,
             };
@@ -116,8 +116,6 @@ function Interview({ sessionData, onFinish }) {
     return (
         <div style={styles.page}>
             <div style={styles.meshBg} />
-            <div style={styles.bgImage} />
-            <div style={styles.bgImageOverlay} />
             <div style={styles.orb1} />
             <div style={styles.orb2} />
             <div style={styles.gridPattern} />
@@ -266,23 +264,10 @@ const getStyles = (isDark) => ({
         pointerEvents: "none",
     },
     bgImage: {
-        position: "fixed", inset: 0,
-        backgroundImage: "url('/ai-bg.png')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        opacity: isDark ? 0.3 : 0.1,
-        mixBlendMode: isDark ? "screen" : "multiply",
-        transition: "opacity 0.6s ease",
-        pointerEvents: "none",
+        display: "none",
     },
     bgImageOverlay: {
-        position: "fixed", inset: 0,
-        background: isDark
-            ? "radial-gradient(ellipse 80% 70% at 50% 50%, transparent 30%, rgba(5,6,11,0.7) 100%)"
-            : "radial-gradient(ellipse 80% 70% at 50% 50%, transparent 30%, rgba(245,247,250,0.85) 100%)",
-        pointerEvents: "none",
-        transition: "background 0.6s ease",
+        display: "none",
     },
     orb1: {
         position: "fixed", top: "5%", left: "-5%",
