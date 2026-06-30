@@ -130,7 +130,7 @@ function Results({ sessionData, onRestart }) {
                 {/* ── Two Column Insights ── */}
                 <div style={styles.twoCol}>
                     {/* Strengths */}
-                    <div style={{ ...styles.insightCard, borderTop: `3px solid #10b981` }}>
+                    <div style={{ ...styles.insightCard, borderTop: `3px solid #10b981` }} className="results-insight">
                         <h3 style={styles.insightTitle}>
                             <span style={{ ...styles.insightIcon, background: "rgba(16,185,129,0.15)", color: "#10b981" }}>✓</span>
                             Top Strengths
@@ -145,7 +145,7 @@ function Results({ sessionData, onRestart }) {
                     </div>
 
                     {/* Areas to Improve */}
-                    <div style={{ ...styles.insightCard, borderTop: `3px solid #ef4444` }}>
+                    <div style={{ ...styles.insightCard, borderTop: `3px solid #ef4444` }} className="results-insight">
                         <h3 style={styles.insightTitle}>
                             <span style={{ ...styles.insightIcon, background: "rgba(239,68,68,0.15)", color: "#ef4444" }}>↗</span>
                             Focus Areas
@@ -162,7 +162,7 @@ function Results({ sessionData, onRestart }) {
 
                 {/* ── Category Breakdown (Sleek Horizontal Bars) ── */}
                 {results.category_scores && (
-                    <div style={styles.cardSection}>
+                    <div style={styles.cardSection} className="results-card-section">
                         <h3 style={styles.sectionHeading}>Performance by Category</h3>
                         <div style={styles.catGrid}>
                             {Object.entries(results.category_scores).map(([key, val]) => {
@@ -185,7 +185,7 @@ function Results({ sessionData, onRestart }) {
 
                 {/* ── Recommended Topics ── */}
                 {results.recommended_topics?.length > 0 && (
-                    <div style={styles.cardSection}>
+                    <div style={styles.cardSection} className="results-card-section">
                         <h3 style={styles.sectionHeading}>Recommended Study Topics</h3>
                         <div style={styles.tagsContainer}>
                             {results.recommended_topics.map((t, i) => (
@@ -248,20 +248,8 @@ function Results({ sessionData, onRestart }) {
                     </div>
                 </div>
 
-                {/* ── Action Footer ── */}
-                <div style={styles.actionFooter}>
-                    <button
-                        style={{ ...styles.restartBtn, ...(btnHover ? styles.restartBtnHover : {}) }}
-                        onClick={onRestart}
-                        onMouseEnter={() => setBtnHover(true)}
-                        onMouseLeave={() => setBtnHover(false)}
-                    >
-                        Start Another Interview
-                    </button>
-                </div>
-
                 {/* ── Feedback / Rate Your Experience ── */}
-                <div style={styles.feedbackSection}>
+                <div style={styles.feedbackSection} className="results-feedback">
                     {feedbackStatus === "success" ? (
                         <div style={styles.feedbackSuccess}>
                             <div style={styles.successIcon}>❤️</div>
@@ -325,6 +313,19 @@ function Results({ sessionData, onRestart }) {
                             </button>
                         </>
                     )}
+                </div>
+
+                {/* ── Action Footer ── */}
+                <div style={styles.actionFooter}>
+                    <button
+                        style={{ ...styles.restartBtn, ...(btnHover ? styles.restartBtnHover : {}) }}
+                        className="results-restart-btn"
+                        onClick={onRestart}
+                        onMouseEnter={() => setBtnHover(true)}
+                        onMouseLeave={() => setBtnHover(false)}
+                    >
+                        Start Another Interview
+                    </button>
                 </div>
 
             </div>
@@ -444,7 +445,6 @@ const getStyles = (isDark) => ({
 
     /* ── Question Review ── */
     reviewSection: {
-        marginTop: "10px",
         animation: "fadeInUp 0.6s ease 0.3s both",
     },
     qList: { display: "flex", flexDirection: "column", gap: "12px" },
@@ -478,9 +478,10 @@ const getStyles = (isDark) => ({
     qText: { fontSize: "14px", lineHeight: "1.6", color: isDark ? "#94a3b8" : "#475569", margin: 0 },
 
     /* ── Action Footer ── */
-    actionFooter: { display: "flex", justifyContent: "center", marginTop: "20px", animation: "fadeInUp 0.6s ease 0.4s both" },
+    actionFooter: { display: "flex", justifyContent: "center", width: "100%", animation: "fadeInUp 0.6s ease 0.4s both" },
     restartBtn: {
-        padding: "16px 40px", borderRadius: "16px", border: "none",
+        width: "100%", maxWidth: "400px",
+        padding: "16px", borderRadius: "16px", border: "none",
         background: "linear-gradient(135deg, #0ea5e9, #8b5cf6)",
         color: "white", fontSize: "16px", fontWeight: "700",
         cursor: "pointer", transition: "all 0.3s ease",
@@ -493,7 +494,6 @@ const getStyles = (isDark) => ({
 
     /* ── Feedback Section ── */
     feedbackSection: {
-        marginTop: "40px",
         background: isDark ? "rgba(12,13,22,0.7)" : "rgba(255,255,255,0.8)",
         backdropFilter: "blur(16px)",
         border: isDark ? "1px solid rgba(255,255,255,0.05)" : "1px solid rgba(0,0,0,0.04)",
@@ -537,12 +537,16 @@ if (typeof document !== "undefined") {
                 to { opacity: 1; transform: translateY(0); }
             }
             @media (max-width: 600px) {
-                .results-container { padding: 20px 16px 60px !important; }
-                .results-hero { padding: 24px !important; gap: 24px !important; flex-direction: column-reverse !important; text-align: center !important; }
+                .results-container { padding: 16px 12px 60px !important; gap: 16px !important; }
+                .results-hero { padding: 24px !important; gap: 20px !important; flex-direction: column-reverse !important; text-align: center !important; }
                 .results-hero-left { align-items: center !important; text-align: center !important; }
-                .results-hero-title { font-size: 28px !important; }
-                .results-hero-stats { justify-content: center !important; width: 100%; gap: 16px !important; }
+                .results-hero-title { font-size: 26px !important; }
+                .results-hero-stats { justify-content: center !important; width: 100%; gap: 12px !important; }
                 .results-q-card { padding: 16px 12px !important; }
+                .results-feedback { padding: 20px !important; }
+                .results-insight { padding: 16px !important; }
+                .results-card-section { padding: 20px !important; }
+                .results-restart-btn { width: 100% !important; padding: 16px 20px !important; }
             }
         `;
         document.head.appendChild(s);
