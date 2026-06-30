@@ -3,43 +3,75 @@ import { useTheme } from "../ThemeContext";
 import { useState, useEffect, useMemo } from "react";
 import CosmicBackground from "../components/CosmicBackground";
 
+const CircleProgress = ({ percentage, color, size = 180, strokeWidth = 14 }) => {
+    const radius = (size - strokeWidth) / 2;
+    const circumference = radius * 2 * Math.PI;
+    const [offset, setOffset] = useState(circumference);
+
+    useEffect(() => {
+        setTimeout(() => setOffset(circumference - (percentage / 100) * circumference), 300);
+    }, [percentage, circumference]);
+
+    return (
+        <div style={{ position: "relative", width: size, height: size, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            {/* Outer Glow */}
+            <div style={{
+                position: "absolute", width: "100%", height: "100%", borderRadius: "50%",
+                background: `radial-gradient(circle, ${color}33 0%, transparent 70%)`,
+                filter: "blur(20px)", zIndex: 0
+            }} />
+            
+            <svg width={size} height={size} style={{ transform: "rotate(-90deg)", zIndex: 1 }}>
+                <circle
+                    cx={size / 2} cy={size / 2} r={radius}
+                    stroke={`${color}20`} strokeWidth={strokeWidth} fill="none"
+                />
+                <circle
+                    cx={size / 2} cy={size / 2} r={radius}
+                    stroke={color} strokeWidth={strokeWidth} fill="none"
+                    strokeDasharray={circumference} strokeDashoffset={offset}
+                    strokeLinecap="round"
+                    style={{ transition: "stroke-dashoffset 1.5s cubic-bezier(0.34, 1.56, 0.64, 1)" }}
+                />
+            </svg>
+            <div style={{ position: "absolute", textAlign: "center", zIndex: 2, display: "flex", flexDirection: "column", alignItems: "center" }}>
+                <div style={{ display: "flex", alignItems: "baseline" }}>
+                    <span style={{ fontSize: "48px", fontWeight: "900", color, fontFamily: "'JetBrains Mono', monospace", lineHeight: "1", letterSpacing: "-2px" }}>
+                        {percentage}
+                    </span>
+                    <span style={{ fontSize: "20px", fontWeight: "700", color: `${color}aa`, marginLeft: "2px" }}>%</span>
+                </div>
+                <span style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "1px", fontWeight: "700", color: `${color}88`, marginTop: "4px" }}>Score</span>
+            </div>
+        </div>
+    );
+};
+
+const categoryLabels = {
+    technical_knowledge: "Technical",
+    concept_understanding: "Concepts",
+    problem_solving: "Problem Solving",
+    communication: "Communication",
+    confidence: "Confidence",
+    clarity: "Clarity",
+};
+
 function Results({ sessionData, onRestart }) {
     const { isDark } = useTheme();
     const [results, setResults] = useState(null);
-    const [restartHover, setRestartHover] = useState(false);
     const [expandedQ, setExpandedQ] = useState(null);
+    const [btnHover, setBtnHover] = useState(false);
     const styles = useMemo(() => getStyles(isDark), [isDark]);
 
     useEffect(() => {
         getScore(sessionData.session_id).then((res) => setResults(res.data));
-    }, []);
+    }, [sessionData]);
 
     const getGrade = (pct) => {
-        if (pct >= 90) return { emoji: "🏆", text: "Outstanding!", color: "#10b981" };
-        if (pct >= 70) return { emoji: "🎯", text: "Great Job!", color: "#06b6d4" };
-        if (pct >= 50) return { emoji: "💪", text: "Good Effort!", color: "#f59e0b" };
-        return { emoji: "📚", text: "Keep Learning!", color: "#ef4444" };
-    };
-
-    const getScoreColor = (score) => {
-        if (score >= 8) return "#10b981";
-        if (score >= 5) return "#f59e0b";
-        return "#ef4444";
-    };
-
-    const getBarColor = (pct) => {
-        if (pct >= 70) return "#10b981";
-        if (pct >= 50) return "#f59e0b";
-        return "#ef4444";
-    };
-
-    const categoryLabels = {
-        technical_knowledge: "Technical Knowledge",
-        concept_understanding: "Concept Understanding",
-        problem_solving: "Problem Solving",
-        communication: "Communication",
-        confidence: "Confidence",
-        clarity: "Clarity",
+        if (pct >= 90) return { emoji: "🏆", text: "Outstanding!", desc: "You crushed it. Ready for top-tier interviews.", color: "#10b981", bg: "rgba(16,185,129,0.1)" };
+        if (pct >= 70) return { emoji: "🎯", text: "Great Job!", desc: "Solid performance. Just a bit more polish needed.", color: "#0ea5e9", bg: "rgba(14,165,233,0.1)" };
+        if (pct >= 50) return { emoji: "💪", text: "Good Effort!", desc: "You have the basics down, keep practicing.", color: "#f59e0b", bg: "rgba(245,158,11,0.1)" };
+        return { emoji: "📚", text: "Keep Learning", desc: "Don't give up! Review the topics and try again.", color: "#ef4444", bg: "rgba(239,68,68,0.1)" };
     };
 
     if (!results) {
@@ -48,7 +80,7 @@ function Results({ sessionData, onRestart }) {
                 <CosmicBackground />
                 <div style={styles.loadingContainer}>
                     <div style={styles.loadingSpinner} />
-                    <p style={styles.loadingText}>Generating your AI Assessment Report...</p>
+                    <p style={styles.loadingText}>Analyzing your interview performance...</p>
                 </div>
             </div>
         );
@@ -59,75 +91,82 @@ function Results({ sessionData, onRestart }) {
     return (
         <div style={styles.page}>
             <CosmicBackground />
-
             <div style={styles.container}>
-                {/* ── Header ── */}
-                <div style={styles.header}>
-                    <span style={styles.headerEmoji}>{grade.emoji}</span>
-                    <h1 style={styles.title}>AI Assessment Report</h1>
-                    <p style={styles.subtitle}>
-                        {results.user_name} • {results.skill} • {results.level}
-                    </p>
-                    <p style={{ ...styles.gradeText, color: grade.color }}>{grade.text}</p>
-                </div>
-
-                {/* ── Overall Score Ring ── */}
-                <div style={styles.scoreCard}>
-                    <div style={styles.scoreMain}>
-                        <div style={{
-                            ...styles.scoreRing,
-                            borderColor: grade.color,
-                            boxShadow: `0 0 50px ${grade.color}22`,
-                        }}>
-                            <span style={{ ...styles.percentValue, color: grade.color }}>
-                                {results.overall_percentage}
-                            </span>
-                            <span style={styles.percentLabel}>/ 100</span>
+                
+                {/* ── Hero Score Card ── */}
+                <div style={styles.heroCard}>
+                    <div style={styles.heroLeft}>
+                        <div style={styles.badgeWrap}>
+                            <span style={styles.heroBadge}>{results.skill}</span>
+                            <span style={styles.heroBadge}>{results.level}</span>
+                        </div>
+                        <h1 style={styles.heroTitle}>{grade.text}</h1>
+                        <p style={styles.heroDesc}>{grade.desc}</p>
+                        
+                        <div style={styles.statsGrid}>
+                            <div style={styles.statBox}>
+                                <span style={styles.statNum}>{results.total_score}</span>
+                                <span style={styles.statLabel}>Total Points</span>
+                            </div>
+                            <div style={styles.statBox}>
+                                <span style={styles.statNum}>{results.total_questions}</span>
+                                <span style={styles.statLabel}>Questions</span>
+                            </div>
                         </div>
                     </div>
-
-                    <div style={styles.statsRow}>
-                        <div style={styles.statItem}>
-                            <span style={styles.statValue}>{results.total_score}</span>
-                            <span style={styles.statLabel}>Points Earned</span>
-                        </div>
-                        <div style={styles.statDivider} />
-                        <div style={styles.statItem}>
-                            <span style={styles.statValue}>{results.total_questions}</span>
-                            <span style={styles.statLabel}>Questions</span>
-                        </div>
-                        <div style={styles.statDivider} />
-                        <div style={styles.statItem}>
-                            <span style={{ ...styles.statValue, color: "#06b6d4", fontSize: "15px" }}>
-                                {results.skill}
-                            </span>
-                            <span style={styles.statLabel}>Technology</span>
-                        </div>
+                    <div style={styles.heroRight}>
+                        <CircleProgress percentage={results.overall_percentage} color={grade.color} />
                     </div>
                 </div>
 
-                {/* ── Category Scores ── */}
+                {/* ── Two Column Insights ── */}
+                <div style={styles.twoCol}>
+                    {/* Strengths */}
+                    <div style={{ ...styles.insightCard, borderTop: `3px solid #10b981` }}>
+                        <h3 style={styles.insightTitle}>
+                            <span style={{ ...styles.insightIcon, background: "rgba(16,185,129,0.15)", color: "#10b981" }}>✓</span>
+                            Top Strengths
+                        </h3>
+                        {results.strengths?.length > 0 ? (
+                            <ul style={styles.insightList}>
+                                {results.strengths.slice(0, 3).map((s, i) => (
+                                    <li key={i} style={styles.insightItem}>{s}</li>
+                                ))}
+                            </ul>
+                        ) : <p style={styles.emptyText}>No major strengths identified yet.</p>}
+                    </div>
+
+                    {/* Areas to Improve */}
+                    <div style={{ ...styles.insightCard, borderTop: `3px solid #ef4444` }}>
+                        <h3 style={styles.insightTitle}>
+                            <span style={{ ...styles.insightIcon, background: "rgba(239,68,68,0.15)", color: "#ef4444" }}>↗</span>
+                            Focus Areas
+                        </h3>
+                        {results.areas_to_improve?.length > 0 ? (
+                            <ul style={styles.insightList}>
+                                {results.areas_to_improve.slice(0, 3).map((a, i) => (
+                                    <li key={i} style={styles.insightItem}>{a}</li>
+                                ))}
+                            </ul>
+                        ) : <p style={styles.emptyText}>You did perfectly in all areas!</p>}
+                    </div>
+                </div>
+
+                {/* ── Category Breakdown (Sleek Horizontal Bars) ── */}
                 {results.category_scores && (
-                    <div style={styles.section}>
-                        <h2 style={styles.sectionTitle}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M9 21V9" /></svg>
-                            Category Scores
-                        </h2>
-                        <div style={styles.categoryGrid}>
-                            {Object.entries(results.category_scores).map(([key, value]) => {
-                                const barColor = getBarColor(value);
+                    <div style={styles.cardSection}>
+                        <h3 style={styles.sectionHeading}>Performance by Category</h3>
+                        <div style={styles.catGrid}>
+                            {Object.entries(results.category_scores).map(([key, val]) => {
+                                const c = val >= 70 ? "#10b981" : val >= 50 ? "#f59e0b" : "#ef4444";
                                 return (
-                                    <div key={key} style={styles.categoryItem}>
-                                        <div style={styles.categoryHeader}>
-                                            <span style={styles.categoryName}>{categoryLabels[key] || key}</span>
-                                            <span style={{ ...styles.categoryValue, color: barColor }}>{value}/100</span>
+                                    <div key={key} style={styles.catBox}>
+                                        <div style={styles.catHead}>
+                                            <span style={styles.catName}>{categoryLabels[key] || key}</span>
+                                            <span style={{ ...styles.catVal, color: c }}>{val}%</span>
                                         </div>
-                                        <div style={styles.barTrack}>
-                                            <div style={{
-                                                ...styles.barFill,
-                                                width: `${value}%`,
-                                                background: `linear-gradient(90deg, ${barColor}88, ${barColor})`,
-                                            }} />
+                                        <div style={styles.catTrack}>
+                                            <div style={{ ...styles.catFill, width: `${val}%`, background: c }} />
                                         </div>
                                     </div>
                                 );
@@ -136,177 +175,83 @@ function Results({ sessionData, onRestart }) {
                     </div>
                 )}
 
-                {/* ── Strengths ── */}
-                {results.strengths && results.strengths.length > 0 && (
-                    <div style={styles.section}>
-                        <h2 style={styles.sectionTitle}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2"><polyline points="20 6 9 17 4 12" /></svg>
-                            Strengths
-                        </h2>
-                        <div style={styles.listCard}>
-                            {results.strengths.map((s, i) => (
-                                <div key={i} style={styles.listItem}>
-                                    <span style={styles.strengthIcon}>✓</span>
-                                    <span style={styles.listText}>{s}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* ── Areas to Improve ── */}
-                {results.areas_to_improve && results.areas_to_improve.length > 0 && (
-                    <div style={styles.section}>
-                        <h2 style={styles.sectionTitle}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>
-                            Areas to Improve
-                        </h2>
-                        <div style={styles.listCard}>
-                            {results.areas_to_improve.map((a, i) => (
-                                <div key={i} style={styles.listItem}>
-                                    <span style={styles.weakIcon}>✗</span>
-                                    <span style={styles.listText}>{a}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
                 {/* ── Recommended Topics ── */}
-                {results.recommended_topics && results.recommended_topics.length > 0 && (
-                    <div style={styles.section}>
-                        <h2 style={styles.sectionTitle}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></svg>
-                            Recommended Topics to Study
-                        </h2>
-                        <div style={styles.tagsWrap}>
+                {results.recommended_topics?.length > 0 && (
+                    <div style={styles.cardSection}>
+                        <h3 style={styles.sectionHeading}>Recommended Study Topics</h3>
+                        <div style={styles.tagsContainer}>
                             {results.recommended_topics.map((t, i) => (
-                                <span key={i} style={styles.recTag}>{t}</span>
+                                <span key={i} style={styles.topicTag}>{t}</span>
                             ))}
                         </div>
                     </div>
                 )}
 
-                {/* ── Question Breakdown ── */}
-                <div style={styles.section}>
-                    <h2 style={styles.sectionTitle}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" />
-                            <line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" />
-                        </svg>
-                        Question Breakdown
-                    </h2>
-
-                    {results.answers?.map((a, i) => {
-                        const isExpanded = expandedQ === i;
-                        const scoreColor = getScoreColor(a.score);
-                        const isMcq = a.question_type === "mcq";
-                        return (
-                            <div
-                                key={i}
-                                style={{
-                                    ...styles.answerCard,
-                                    ...(isExpanded ? styles.answerCardExpanded : {}),
-                                }}
-                                onClick={() => setExpandedQ(isExpanded ? null : i)}
-                            >
-                                <div style={styles.answerHeader}>
-                                    <div style={styles.answerLeft}>
-                                        <span style={styles.qNumber}>Q{i + 1}</span>
-                                        <span style={{
-                                            ...styles.typeBadge,
-                                            color: isMcq ? "#8b5cf6" : "#10b981",
-                                            background: isMcq ? "rgba(139,92,246,0.08)" : "rgba(16,185,129,0.08)",
-                                        }}>
-                                            {isMcq ? "MCQ" : "DESC"}
-                                        </span>
-                                        <span style={styles.qTextPreview}>
-                                            {a.question && a.question.length > 55
-                                                ? a.question.substring(0, 55) + "..."
-                                                : a.question}
-                                        </span>
-                                    </div>
-                                    <div style={styles.answerRight}>
-                                        {isMcq && (
-                                            <span style={{
-                                                ...styles.mcqResult,
-                                                color: a.is_correct ? "#10b981" : "#ef4444",
-                                            }}>
-                                                {a.is_correct ? "✓" : "✗"}
+                {/* ── Question Review (Simplified & Clean) ── */}
+                <div style={styles.reviewSection}>
+                    <h3 style={styles.sectionHeading}>Detailed Review</h3>
+                    <div style={styles.qList}>
+                        {results.answers?.map((a, i) => {
+                            const isExpanded = expandedQ === i;
+                            const isCorrect = a.is_correct || a.score >= 7;
+                            const qColor = isCorrect ? "#10b981" : (a.score >= 4 ? "#f59e0b" : "#ef4444");
+                            
+                            return (
+                                <div key={i} style={{ ...styles.qCard, ...(isExpanded ? styles.qCardExpanded : {}) }} onClick={() => setExpandedQ(isExpanded ? null : i)}>
+                                    <div style={styles.qHeader}>
+                                        <div style={{ ...styles.qDot, background: qColor }} />
+                                        <div style={styles.qHeaderMain}>
+                                            <span style={styles.qTitle}>Question {i + 1}</span>
+                                            <span style={styles.qPreview}>
+                                                {a.question.length > 60 ? a.question.substring(0, 60) + "..." : a.question}
                                             </span>
-                                        )}
-                                        <span style={{
-                                            ...styles.answerScore,
-                                            color: scoreColor,
-                                            background: `${scoreColor}10`,
-                                            borderColor: `${scoreColor}22`,
-                                        }}>
-                                            {a.score}/10
-                                        </span>
-                                        <span style={{
-                                            ...styles.expandIcon,
-                                            transform: isExpanded ? "rotate(180deg)" : "rotate(0)",
-                                        }}>
-                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9" /></svg>
-                                        </span>
+                                        </div>
+                                        <div style={styles.qScoreWrap}>
+                                            <span style={{ ...styles.qScoreBadge, color: qColor, background: `${qColor}15` }}>
+                                                {a.score}/10
+                                            </span>
+                                            <svg style={{ transform: isExpanded ? "rotate(180deg)" : "rotate(0)", transition: "0.3s", color: isDark ? "#64748b" : "#94a3b8" }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
+                                        </div>
                                     </div>
+                                    
+                                    {isExpanded && (
+                                        <div style={styles.qDetails}>
+                                            <div style={styles.qDetailRow}>
+                                                <div style={styles.qDetailBox}>
+                                                    <span style={styles.qLabel}>Your Answer</span>
+                                                    <p style={{ ...styles.qText, color: isDark ? "#e2e8f0" : "#1e293b" }}>{a.user_answer || a.selected || "No answer"}</p>
+                                                </div>
+                                                {a.correct_answer && (
+                                                    <div style={styles.qDetailBox}>
+                                                        <span style={styles.qLabel}>Ideal Answer</span>
+                                                        <p style={{ ...styles.qText, color: "#10b981" }}>{a.correct_answer}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div style={{ ...styles.qDetailBox, marginTop: "12px", background: isDark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)", padding: "12px", borderRadius: "8px" }}>
+                                                <span style={styles.qLabel}>AI Feedback</span>
+                                                <p style={styles.qText}>{a.feedback}</p>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
-
-                                {isExpanded && (
-                                    <div style={styles.answerExpanded}>
-                                        <div style={styles.expandedBlock}>
-                                            <span style={styles.expandedLabel}>Question</span>
-                                            <p style={styles.expandedText}>{a.question}</p>
-                                        </div>
-                                        <div style={styles.expandedBlock}>
-                                            <span style={styles.expandedLabel}>Your Answer</span>
-                                            <p style={styles.expandedText}>
-                                                {isMcq ? `Selected: ${a.selected || a.user_answer}` : (a.user_answer || "No answer provided")}
-                                            </p>
-                                        </div>
-                                        <div style={styles.expandedBlock}>
-                                            <span style={styles.expandedLabel}>Feedback</span>
-                                            <p style={styles.expandedText}>{a.feedback}</p>
-                                        </div>
-                                        {a.correct_answer && (
-                                            <div style={styles.expandedBlock}>
-                                                <span style={styles.expandedLabel}>Correct Answer</span>
-                                                <p style={styles.expandedText}>{a.correct_answer}</p>
-                                            </div>
-                                        )}
-                                        {a.weak_areas?.length > 0 && (
-                                            <div style={styles.expandedWeakRow}>
-                                                {a.weak_areas.map((w, j) => (
-                                                    <span key={j} style={styles.weakTag}>{w}</span>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })}
+                            );
+                        })}
+                    </div>
                 </div>
 
-                {/* ── Restart Button ── */}
-                <button
-                    id="restart-interview-btn"
-                    style={{
-                        ...styles.restartBtn,
-                        ...(restartHover ? styles.restartBtnHover : {}),
-                    }}
-                    onClick={onRestart}
-                    onMouseEnter={() => setRestartHover(true)}
-                    onMouseLeave={() => setRestartHover(false)}
-                >
-                    <span style={styles.btnContent}>
-                        Start New Interview
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="23 4 23 10 17 10" />
-                            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-                        </svg>
-                    </span>
-                </button>
+                {/* ── Action Footer ── */}
+                <div style={styles.actionFooter}>
+                    <button
+                        style={{ ...styles.restartBtn, ...(btnHover ? styles.restartBtnHover : {}) }}
+                        onClick={onRestart}
+                        onMouseEnter={() => setBtnHover(true)}
+                        onMouseLeave={() => setBtnHover(false)}
+                    >
+                        Start Another Interview
+                    </button>
+                </div>
+
             </div>
         </div>
     );
@@ -316,274 +261,175 @@ const getStyles = (isDark) => ({
     page: {
         minHeight: "100vh", position: "relative", overflow: "hidden",
         background: isDark ? "#05060b" : "#f5f7fa",
-        transition: "background 0.4s ease",
+        color: isDark ? "#f1f5f9" : "#1e293b",
+        fontFamily: "'Inter', sans-serif",
     },
-
-    /* ── Loading ── */
     loadingContainer: {
         minHeight: "100vh", display: "flex", flexDirection: "column",
-        alignItems: "center", justifyContent: "center", gap: "18px",
+        alignItems: "center", justifyContent: "center", gap: "20px",
         position: "relative", zIndex: 1,
     },
     loadingSpinner: {
-        width: "36px", height: "36px",
+        width: "40px", height: "40px",
         border: "3px solid rgba(6,182,212,0.1)",
         borderTopColor: "#06b6d4", borderRadius: "50%",
         animation: "spin 0.8s linear infinite",
     },
-    loadingText: { color: isDark ? "#64748b" : "#475569", fontSize: "14px", fontWeight: "500" },
-
-    /* ── Container ── */
+    loadingText: { color: isDark ? "#94a3b8" : "#64748b", fontSize: "15px", fontWeight: "500" },
+    
     container: {
         position: "relative", zIndex: 1,
-        maxWidth: "720px", margin: "0 auto",
-        padding: "40px 20px 60px",
+        maxWidth: "800px", margin: "0 auto",
+        padding: "40px 20px 80px",
+        display: "flex", flexDirection: "column", gap: "24px",
     },
 
-    /* ── Header ── */
-    header: {
-        textAlign: "center", marginBottom: "28px",
-        animation: "fadeInUp 0.5s var(--ease-out) both",
+    /* ── Hero Card ── */
+    heroCard: {
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        background: isDark ? "rgba(12,13,22,0.85)" : "rgba(255,255,255,0.9)",
+        backdropFilter: "blur(20px)",
+        border: isDark ? "1px solid rgba(255,255,255,0.06)" : "1px solid rgba(0,0,0,0.05)",
+        borderRadius: "24px", padding: "40px",
+        boxShadow: isDark ? "0 24px 80px rgba(0,0,0,0.5)" : "0 20px 60px rgba(0,0,0,0.05)",
+        gap: "40px", flexWrap: "wrap",
+        animation: "fadeInUp 0.6s ease both",
     },
-    headerEmoji: {
-        fontSize: "44px", display: "block", marginBottom: "14px",
-        animation: "bounceIn 0.8s var(--ease-spring) both",
+    heroLeft: { flex: "1 1 300px", display: "flex", flexDirection: "column", gap: "16px" },
+    badgeWrap: { display: "flex", gap: "10px" },
+    heroBadge: {
+        padding: "4px 12px", borderRadius: "99px",
+        background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)",
+        fontSize: "12px", fontWeight: "600", color: isDark ? "#cbd5e1" : "#475569",
+        textTransform: "uppercase", letterSpacing: "0.5px",
     },
-    title: {
-        fontSize: "28px", fontWeight: "900",
-        color: isDark ? "#f1f5f9" : "#1e293b",
-        marginBottom: "6px", letterSpacing: "-0.8px",
-        fontFamily: "'Inter', sans-serif",
-    },
-    subtitle: {
-        fontSize: "13px", color: isDark ? "#64748b" : "#475569", fontWeight: "500",
-        marginBottom: "4px", margin: "4px 0",
-    },
-    gradeText: { fontSize: "15px", fontWeight: "700", letterSpacing: "0.2px", margin: "4px 0" },
+    heroTitle: { fontSize: "36px", fontWeight: "800", letterSpacing: "-1px", margin: 0, lineHeight: "1.1" },
+    heroDesc: { fontSize: "15px", color: isDark ? "#94a3b8" : "#64748b", margin: 0, lineHeight: "1.5" },
+    statsGrid: { display: "flex", gap: "24px", marginTop: "10px" },
+    statBox: { display: "flex", flexDirection: "column", gap: "4px" },
+    statNum: { fontSize: "24px", fontWeight: "800", fontFamily: "'JetBrains Mono', monospace", color: isDark ? "#f1f5f9" : "#1e293b" },
+    statLabel: { fontSize: "11px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px", color: isDark ? "#64748b" : "#94a3b8" },
+    heroRight: { display: "flex", justifyContent: "center", flex: "1 1 200px" },
 
-    /* ── Score Card ── */
-    scoreCard: {
-        background: isDark ? "rgba(12,13,22,0.9)" : "rgba(255,255,255,0.85)",
-        backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
-        border: isDark ? "1px solid rgba(255,255,255,0.06)" : "1px solid rgba(0,0,0,0.08)",
-        borderRadius: "20px", padding: "32px", marginBottom: "24px",
-        boxShadow: isDark
-            ? "0 20px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03)"
-            : "0 20px 80px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.6)",
-        animation: "fadeInUp 0.6s var(--ease-out) 0.1s both",
+    /* ── Two Column Insights ── */
+    twoCol: {
+        display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "24px",
+        animation: "fadeInUp 0.6s ease 0.1s both",
     },
-    scoreMain: { display: "flex", justifyContent: "center", marginBottom: "28px" },
-    scoreRing: {
-        width: "110px", height: "110px", borderRadius: "50%",
-        border: "3px solid", display: "flex", flexDirection: "column",
-        alignItems: "center", justifyContent: "center", gap: "2px",
-        animation: "bounceIn 0.7s var(--ease-spring) 0.3s both",
-    },
-    percentValue: {
-        fontSize: "38px", fontWeight: "900",
-        fontFamily: "'JetBrains Mono', monospace", lineHeight: "1",
-    },
-    percentLabel: {
-        fontSize: "12px", fontWeight: "600", color: isDark ? "#4b5563" : "#94a3b8",
-    },
-    statsRow: {
-        display: "flex", alignItems: "center", justifyContent: "center", gap: "28px",
-    },
-    statItem: {
-        display: "flex", flexDirection: "column", alignItems: "center", gap: "4px",
-    },
-    statValue: {
-        fontSize: "17px", fontWeight: "700",
-        color: isDark ? "#e2e8f0" : "#1e293b",
-        fontFamily: "'JetBrains Mono', monospace",
-    },
-    statLabel: {
-        fontSize: "10px", fontWeight: "600", color: isDark ? "#4b5563" : "#94a3b8",
-        textTransform: "uppercase", letterSpacing: "0.6px",
-    },
-    statDivider: {
-        width: "1px", height: "30px",
-        background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.06)",
-    },
-
-    /* ── Sections ── */
-    section: {
-        marginBottom: "24px",
-        animation: "fadeInUp 0.7s var(--ease-out) 0.2s both",
-    },
-    sectionTitle: {
-        display: "flex", alignItems: "center", gap: "8px",
-        fontSize: "14px", fontWeight: "700",
-        color: isDark ? "#94a3b8" : "#64748b",
-        marginBottom: "14px", letterSpacing: "-0.2px",
-    },
-
-    /* ── Category Scores ── */
-    categoryGrid: {
-        display: "flex", flexDirection: "column", gap: "14px",
-        background: isDark ? "rgba(12,13,22,0.8)" : "rgba(255,255,255,0.85)",
+    insightCard: {
+        background: isDark ? "rgba(12,13,22,0.7)" : "rgba(255,255,255,0.8)",
         backdropFilter: "blur(16px)",
-        border: isDark ? "1px solid rgba(255,255,255,0.05)" : "1px solid rgba(0,0,0,0.06)",
-        borderRadius: "16px", padding: "22px",
+        border: isDark ? "1px solid rgba(255,255,255,0.05)" : "1px solid rgba(0,0,0,0.04)",
+        borderRadius: "20px", padding: "24px",
+        display: "flex", flexDirection: "column", gap: "16px",
     },
-    categoryItem: { display: "flex", flexDirection: "column", gap: "6px" },
-    categoryHeader: {
-        display: "flex", justifyContent: "space-between", alignItems: "center",
+    insightTitle: {
+        display: "flex", alignItems: "center", gap: "10px",
+        fontSize: "15px", fontWeight: "700", margin: 0,
     },
-    categoryName: {
-        fontSize: "13px", fontWeight: "600",
-        color: isDark ? "#cbd5e1" : "#475569",
+    insightIcon: {
+        width: "28px", height: "28px", borderRadius: "8px",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: "14px", fontWeight: "900",
     },
-    categoryValue: {
-        fontSize: "12px", fontWeight: "700",
-        fontFamily: "'JetBrains Mono', monospace",
+    insightList: { margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: "12px" },
+    insightItem: {
+        fontSize: "14px", lineHeight: "1.5", color: isDark ? "#cbd5e1" : "#475569",
+        position: "relative", paddingLeft: "16px",
     },
-    barTrack: {
-        height: "6px", borderRadius: "3px",
-        background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)",
-        overflow: "hidden",
-    },
-    barFill: {
-        height: "100%", borderRadius: "3px",
-        transition: "width 1s cubic-bezier(0.16, 1, 0.3, 1)",
-    },
+    emptyText: { fontSize: "14px", color: isDark ? "#64748b" : "#94a3b8", fontStyle: "italic", margin: 0 },
 
-    /* ── Strengths / Weaknesses Lists ── */
-    listCard: {
-        background: isDark ? "rgba(12,13,22,0.8)" : "rgba(255,255,255,0.85)",
+    /* ── Generic Card Section ── */
+    cardSection: {
+        background: isDark ? "rgba(12,13,22,0.7)" : "rgba(255,255,255,0.8)",
         backdropFilter: "blur(16px)",
-        border: isDark ? "1px solid rgba(255,255,255,0.05)" : "1px solid rgba(0,0,0,0.06)",
-        borderRadius: "16px", padding: "18px",
-        display: "flex", flexDirection: "column", gap: "10px",
+        border: isDark ? "1px solid rgba(255,255,255,0.05)" : "1px solid rgba(0,0,0,0.04)",
+        borderRadius: "20px", padding: "28px",
+        animation: "fadeInUp 0.6s ease 0.2s both",
     },
-    listItem: {
-        display: "flex", alignItems: "flex-start", gap: "10px",
-    },
-    strengthIcon: {
-        color: "#10b981", fontWeight: "800", fontSize: "14px",
-        flexShrink: 0, marginTop: "1px",
-    },
-    weakIcon: {
-        color: "#ef4444", fontWeight: "800", fontSize: "14px",
-        flexShrink: 0, marginTop: "1px",
-    },
-    listText: {
-        fontSize: "13px", fontWeight: "500", lineHeight: "1.5",
-        color: isDark ? "#94a3b8" : "#475569",
-    },
+    sectionHeading: { fontSize: "18px", fontWeight: "700", marginBottom: "20px", letterSpacing: "-0.5px" },
+    
+    /* ── Category Breakdown ── */
+    catGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "20px" },
+    catBox: { display: "flex", flexDirection: "column", gap: "8px" },
+    catHead: { display: "flex", justifyContent: "space-between", alignItems: "center" },
+    catName: { fontSize: "13px", fontWeight: "600", color: isDark ? "#cbd5e1" : "#475569" },
+    catVal: { fontSize: "13px", fontWeight: "700", fontFamily: "'JetBrains Mono', monospace" },
+    catTrack: { height: "6px", borderRadius: "3px", background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)", overflow: "hidden" },
+    catFill: { height: "100%", borderRadius: "3px", transition: "width 1s ease" },
 
     /* ── Recommended Topics ── */
-    tagsWrap: {
-        display: "flex", flexWrap: "wrap", gap: "8px",
-    },
-    recTag: {
-        padding: "7px 16px", borderRadius: "9999px",
-        background: isDark ? "rgba(139,92,246,0.08)" : "rgba(139,92,246,0.08)",
-        border: isDark ? "1px solid rgba(139,92,246,0.15)" : "1px solid rgba(139,92,246,0.2)",
-        color: isDark ? "#a78bfa" : "#7c3aed", fontSize: "12px", fontWeight: "600",
+    tagsContainer: { display: "flex", flexWrap: "wrap", gap: "10px" },
+    topicTag: {
+        padding: "8px 16px", borderRadius: "10px",
+        background: isDark ? "rgba(139,92,246,0.1)" : "rgba(139,92,246,0.08)",
+        border: isDark ? "1px solid rgba(139,92,246,0.2)" : "1px solid rgba(139,92,246,0.15)",
+        color: isDark ? "#c4b5fd" : "#7c3aed", fontSize: "13px", fontWeight: "600",
     },
 
-    /* ── Answer Cards (Question Breakdown) ── */
-    answerCard: {
-        background: isDark ? "rgba(12,13,22,0.8)" : "rgba(255,255,255,0.9)",
-        border: isDark ? "1px solid rgba(255,255,255,0.04)" : "1px solid rgba(0,0,0,0.08)",
-        borderRadius: "14px", padding: "14px 16px",
-        marginBottom: "8px", cursor: "pointer",
-        transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
+    /* ── Question Review ── */
+    reviewSection: {
+        marginTop: "10px",
+        animation: "fadeInUp 0.6s ease 0.3s both",
     },
-    answerCardExpanded: {
-        borderColor: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.12)",
-        background: isDark ? "rgba(12,13,22,0.95)" : "rgba(255,255,255,0.95)",
+    qList: { display: "flex", flexDirection: "column", gap: "12px" },
+    qCard: {
+        background: isDark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)",
+        border: isDark ? "1px solid rgba(255,255,255,0.05)" : "1px solid rgba(0,0,0,0.05)",
+        borderRadius: "16px", padding: "16px 20px",
+        cursor: "pointer", transition: "all 0.2s ease",
     },
-    answerHeader: {
-        display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px",
+    qCardExpanded: {
+        background: isDark ? "rgba(12,13,22,0.9)" : "#ffffff",
+        borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)",
+        boxShadow: isDark ? "0 10px 30px rgba(0,0,0,0.3)" : "0 10px 30px rgba(0,0,0,0.05)",
     },
-    answerLeft: {
-        display: "flex", alignItems: "center", gap: "8px", flex: 1, minWidth: 0,
+    qHeader: { display: "flex", alignItems: "center", gap: "16px" },
+    qDot: { width: "10px", height: "10px", borderRadius: "50%", flexShrink: 0 },
+    qHeaderMain: { display: "flex", flexDirection: "column", gap: "4px", flex: 1, minWidth: 0 },
+    qTitle: { fontSize: "12px", fontWeight: "700", color: isDark ? "#64748b" : "#94a3b8", textTransform: "uppercase", letterSpacing: "0.5px" },
+    qPreview: { fontSize: "14px", fontWeight: "500", color: isDark ? "#cbd5e1" : "#334155", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
+    qScoreWrap: { display: "flex", alignItems: "center", gap: "12px", flexShrink: 0 },
+    qScoreBadge: { padding: "4px 10px", borderRadius: "8px", fontSize: "13px", fontWeight: "700", fontFamily: "'JetBrains Mono', monospace" },
+    
+    qDetails: {
+        marginTop: "16px", paddingTop: "16px",
+        borderTop: isDark ? "1px solid rgba(255,255,255,0.05)" : "1px solid rgba(0,0,0,0.05)",
+        display: "flex", flexDirection: "column", gap: "16px",
     },
-    qNumber: {
-        fontSize: "11px", fontWeight: "700", color: "#06b6d4",
-        fontFamily: "'JetBrains Mono', monospace",
-        padding: "3px 7px", borderRadius: "6px",
-        background: "rgba(6,182,212,0.06)", flexShrink: 0,
-    },
-    typeBadge: {
-        fontSize: "9px", fontWeight: "700",
-        padding: "2px 7px", borderRadius: "4px",
-        textTransform: "uppercase", letterSpacing: "0.5px",
-        flexShrink: 0,
-    },
-    qTextPreview: {
-        fontSize: "13px", color: isDark ? "#94a3b8" : "#475569",
-        overflow: "hidden", textOverflow: "ellipsis",
-        whiteSpace: "nowrap", fontWeight: "500",
-    },
-    answerRight: {
-        display: "flex", alignItems: "center", gap: "8px", flexShrink: 0,
-    },
-    mcqResult: {
-        fontSize: "14px", fontWeight: "800",
-    },
-    answerScore: {
-        fontSize: "12px", fontWeight: "700",
-        fontFamily: "'JetBrains Mono', monospace",
-        padding: "3px 9px", borderRadius: "9999px",
-        border: "1px solid",
-    },
-    expandIcon: {
-        color: isDark ? "#475569" : "#94a3b8",
-        transition: "transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
-        display: "flex",
-    },
-    answerExpanded: {
-        marginTop: "14px", paddingTop: "14px",
-        borderTop: isDark ? "1px solid rgba(255,255,255,0.04)" : "1px solid rgba(0,0,0,0.06)",
-        display: "flex", flexDirection: "column", gap: "12px",
-    },
-    expandedBlock: { display: "flex", flexDirection: "column", gap: "5px" },
-    expandedLabel: {
-        fontSize: "10px", fontWeight: "700", color: isDark ? "#4b5563" : "#94a3b8",
-        textTransform: "uppercase", letterSpacing: "0.6px",
-    },
-    expandedText: {
-        fontSize: "13px", lineHeight: "1.7",
-        color: isDark ? "#94a3b8" : "#475569", margin: 0,
-    },
-    expandedWeakRow: { display: "flex", flexWrap: "wrap", gap: "6px" },
-    weakTag: {
-        padding: "3px 10px", borderRadius: "9999px",
-        background: isDark ? "rgba(245,158,11,0.08)" : "rgba(245,158,11,0.1)",
-        border: isDark ? "1px solid rgba(245,158,11,0.12)" : "1px solid rgba(245,158,11,0.2)",
-        color: isDark ? "#fbbf24" : "#d97706", fontSize: "11px", fontWeight: "600",
-    },
+    qDetailRow: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "16px" },
+    qDetailBox: { display: "flex", flexDirection: "column", gap: "6px" },
+    qLabel: { fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px", color: isDark ? "#64748b" : "#94a3b8" },
+    qText: { fontSize: "14px", lineHeight: "1.6", color: isDark ? "#94a3b8" : "#475569", margin: 0 },
 
-    /* ── Restart Button ── */
+    /* ── Action Footer ── */
+    actionFooter: { display: "flex", justifyContent: "center", marginTop: "20px", animation: "fadeInUp 0.6s ease 0.4s both" },
     restartBtn: {
-        width: "100%", padding: "15px 24px", borderRadius: "14px",
-        border: "none",
-        background: "linear-gradient(135deg, #06b6d4, #8b5cf6)",
-        color: "white", fontSize: "15px", fontWeight: "700",
-        fontFamily: "'Inter', sans-serif", cursor: "pointer",
-        transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
-        animation: "fadeInUp 0.8s var(--ease-out) 0.3s both",
-        letterSpacing: "0.3px",
+        padding: "16px 40px", borderRadius: "16px", border: "none",
+        background: "linear-gradient(135deg, #0ea5e9, #8b5cf6)",
+        color: "white", fontSize: "16px", fontWeight: "700",
+        cursor: "pointer", transition: "all 0.3s ease",
+        boxShadow: "0 10px 25px rgba(14,165,233,0.3)",
     },
     restartBtnHover: {
-        transform: "translateY(-2px)",
-        boxShadow: "0 8px 32px rgba(6,182,212,0.25), 0 0 60px rgba(139,92,246,0.1)",
-    },
-    btnContent: {
-        display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+        transform: "translateY(-3px)",
+        boxShadow: "0 15px 35px rgba(14,165,233,0.4)",
     },
 });
 
-/* Inject spinner */
+/* Inject animations */
 if (typeof document !== "undefined") {
-    const id = "results-spin-style";
+    const id = "results-anim-style";
     if (!document.getElementById(id)) {
         const s = document.createElement("style");
         s.id = id;
-        s.textContent = `@keyframes spin { to { transform: rotate(360deg); } }`;
+        s.textContent = `
+            @keyframes spin { to { transform: rotate(360deg); } }
+            @keyframes fadeInUp {
+                from { opacity: 0; transform: translateY(20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+        `;
         document.head.appendChild(s);
     }
 }

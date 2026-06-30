@@ -277,7 +277,7 @@ function Home({ onStart, user, onLogout }) {
           {/* ── Skill Selection ── */}
           <div style={styles.section}>
             <label style={styles.label}>Technology Stack</label>
-            <div style={styles.skillGrid}>
+            <div style={styles.skillGrid} className="responsive-skill-grid">
               {skills.map((s, i) => {
                 const isActive = skill === s.name;
                 const isHovered = hoveredSkill === s.name;
@@ -331,7 +331,7 @@ function Home({ onStart, user, onLogout }) {
           {/* ── Level Selection ── */}
           <div style={styles.section}>
             <label style={styles.label}>Difficulty</label>
-            <div style={styles.levelGrid}>
+            <div style={styles.levelGrid} className="responsive-level-grid">
               {levels.map((l, i) => {
                 const isActive = level === l.name;
                 const isHovered = hoveredLevel === l.name;
@@ -611,7 +611,6 @@ const getStyles = (isDark) => ({
   /* ── Skills ── */
   skillGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))",
     gap: "10px",
   },
   skillCard: {
@@ -658,7 +657,6 @@ const getStyles = (isDark) => ({
   /* ── Levels ── */
   levelGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))",
     gap: "10px",
   },
   levelCard: {
@@ -806,6 +804,17 @@ if (typeof document !== "undefined") {
     s.id = id;
     s.textContent = `
       @keyframes spin { to { transform: rotate(360deg); } }
+      @media (min-width: 500px) {
+        .responsive-skill-grid { grid-template-columns: repeat(3, 1fr); }
+        .responsive-level-grid { grid-template-columns: repeat(3, 1fr); }
+      }
+      @media (max-width: 499px) {
+        .responsive-skill-grid { grid-template-columns: repeat(2, 1fr); }
+        .responsive-level-grid { grid-template-columns: repeat(3, 1fr); gap: 6px !important; }
+        .responsive-level-grid > button { padding: 12px 4px 10px !important; }
+        .responsive-level-grid > button > span:nth-of-type(1) { font-size: 11px !important; }
+        .responsive-level-grid > button > span:nth-of-type(2) { font-size: 9px !important; line-height: 1.1; }
+      }
     `;
     document.head.appendChild(s);
   }
