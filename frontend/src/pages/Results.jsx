@@ -91,19 +91,19 @@ function Results({ sessionData, onRestart }) {
     return (
         <div style={styles.page}>
             <CosmicBackground />
-            <div style={styles.container}>
+            <div style={styles.container} className="results-container">
                 
                 {/* ── Hero Score Card ── */}
-                <div style={styles.heroCard}>
-                    <div style={styles.heroLeft}>
+                <div style={styles.heroCard} className="results-hero">
+                    <div style={styles.heroLeft} className="results-hero-left">
                         <div style={styles.badgeWrap}>
                             <span style={styles.heroBadge}>{results.skill}</span>
                             <span style={styles.heroBadge}>{results.level}</span>
                         </div>
-                        <h1 style={styles.heroTitle}>{grade.text}</h1>
+                        <h1 style={styles.heroTitle} className="results-hero-title">{grade.text}</h1>
                         <p style={styles.heroDesc}>{grade.desc}</p>
                         
-                        <div style={styles.statsGrid}>
+                        <div style={styles.statsGrid} className="results-hero-stats">
                             <div style={styles.statBox}>
                                 <span style={styles.statNum}>{results.total_score}</span>
                                 <span style={styles.statLabel}>Total Points</span>
@@ -197,7 +197,7 @@ function Results({ sessionData, onRestart }) {
                             const qColor = isCorrect ? "#10b981" : (a.score >= 4 ? "#f59e0b" : "#ef4444");
                             
                             return (
-                                <div key={i} style={{ ...styles.qCard, ...(isExpanded ? styles.qCardExpanded : {}) }} onClick={() => setExpandedQ(isExpanded ? null : i)}>
+                                <div key={i} style={{ ...styles.qCard, ...(isExpanded ? styles.qCardExpanded : {}) }} className="results-q-card" onClick={() => setExpandedQ(isExpanded ? null : i)}>
                                     <div style={styles.qHeader}>
                                         <div style={{ ...styles.qDot, background: qColor }} />
                                         <div style={styles.qHeaderMain}>
@@ -428,6 +428,14 @@ if (typeof document !== "undefined") {
             @keyframes fadeInUp {
                 from { opacity: 0; transform: translateY(20px); }
                 to { opacity: 1; transform: translateY(0); }
+            }
+            @media (max-width: 600px) {
+                .results-container { padding: 20px 16px 60px !important; }
+                .results-hero { padding: 24px !important; gap: 24px !important; flex-direction: column-reverse !important; text-align: center !important; }
+                .results-hero-left { align-items: center !important; text-align: center !important; }
+                .results-hero-title { font-size: 28px !important; }
+                .results-hero-stats { justify-content: center !important; width: 100%; gap: 16px !important; }
+                .results-q-card { padding: 16px 12px !important; }
             }
         `;
         document.head.appendChild(s);
