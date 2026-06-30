@@ -262,23 +262,23 @@ DEFAULT_TOPICS = {
 # ─── Level config ───
 LEVEL_GUIDELINES = {
     "beginner": {
-        "description": "a BEGINNER who just started learning",
-        "mcq_rules": "Simple concept-check question. Max 15 words. Test basic knowledge.",
-        "desc_rules": "Simple explanation question. Max 20 words. Ask 'what is' or 'explain' type.",
+        "description": "a BEGINNER (0-1 years of experience)",
+        "mcq_rules": "Standard, frequently asked foundational question. Test basic concepts. Max 20 words. Must be extremely clear.",
+        "desc_rules": "Standard foundational interview question (e.g., 'What is...', 'Explain...'). Max 25 words. Must be direct and unambiguous.",
         "max_tokens_mcq": 200,
         "max_tokens_desc": 60,
     },
     "intermediate": {
-        "description": "an INTERMEDIATE developer who knows the basics",
-        "mcq_rules": "Practical understanding question. Max 25 words. Can test subtle differences.",
-        "desc_rules": "How/why question about practical usage. Max 30 words.",
+        "description": "an INTERMEDIATE developer (2-4 years of experience)",
+        "mcq_rules": "Practical, scenario-based or deeper conceptual question. Max 30 words. Must be clear and unambiguous.",
+        "desc_rules": "Practical interview question asking 'How', 'Why', or comparing two concepts. Max 35 words. Must be realistic.",
         "max_tokens_mcq": 250,
         "max_tokens_desc": 100,
     },
     "advanced": {
-        "description": "an ADVANCED developer with deep experience",
-        "mcq_rules": "Deep concept question testing edge cases. Max 30 words.",
-        "desc_rules": "Scenario or architecture question. Max 40 words.",
+        "description": "an ADVANCED developer (5+ years of experience)",
+        "mcq_rules": "Advanced architecture, edge-case, or performance optimization question. Max 40 words. Must be professionally phrased and clear.",
+        "desc_rules": "In-depth architecture, system design, or complex scenario question. Max 50 words. Must be highly relevant to senior roles.",
         "max_tokens_mcq": 300,
         "max_tokens_desc": 150,
     },
@@ -326,33 +326,32 @@ def generate_mcq_question(skill: str, level: str, asked_questions: list = None, 
     level_config = LEVEL_GUIDELINES.get(level, LEVEL_GUIDELINES["beginner"])
     asked = "\n".join(f"- {q}" for q in asked_questions) if asked_questions else "None"
 
-    prompt = f"""Generate ONE multiple-choice question about {skill}.
+    prompt = f"""Generate ONE realistic, high-quality multiple-choice interview question about {skill}.
 
 Topic: {current_topic}
-Level: {level} ({level_config["description"]})
-Rule: {level_config["mcq_rules"]}
+Target Audience: {level} ({level_config["description"]})
+Guidelines: {level_config["mcq_rules"]}
 
-Already asked (don't repeat): {asked}
+Already asked in this session (do NOT repeat these): {asked}
 
 You MUST respond in this EXACT JSON format, nothing else:
-{{"question": "your question here", "options": ["A. option1", "B. option2", "C. option3", "D. option4"], "correct": "A"}}
+{{"question": "your clear question here", "options": ["A. option1", "B. option2", "C. option3", "D. option4"], "correct": "A"}}
 
-Rules:
-- Question must be SHORT and CLEAR
-- All 4 options must be plausible
-- Only ONE correct answer
-- correct field must be just the letter (A, B, C, or D)
-- Return ONLY valid JSON, no extra text"""
+Strict Rules:
+- The question must be a standard, real-world interview question.
+- The wording must be perfectly clear, unambiguous, and grammatically correct.
+- All 4 options must be plausible, but only ONE is definitely correct.
+- 'correct' field must be just the letter (A, B, C, or D).
+- Return ONLY valid JSON, no extra text."""
 
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=[
-            {"role": "system", "content": f"You are a {skill} quiz generator. Return ONLY valid JSON. No markdown, no code blocks, no extra text."},
+            {"role": "system", "content": f"You are an expert {skill} technical interviewer. Generate clear, realistic interview questions. Return ONLY valid JSON. No markdown, no extra text."},
             {"role": "user", "content": prompt}
         ],
-        temperature=0.8,
+        temperature=0.85,
         max_tokens=level_config["max_tokens_mcq"],
-        seed=seed + question_number,
     )
 
     raw = response.choices[0].message.content.strip()
@@ -431,25 +430,28 @@ def generate_descriptive_question(skill: str, level: str, asked_questions: list 
     level_config = LEVEL_GUIDELINES.get(level, LEVEL_GUIDELINES["beginner"])
     asked = "\n".join(f"- {q}" for q in asked_questions) if asked_questions else "None"
 
-    prompt = f"""Generate ONE short {skill} interview question.
+    prompt = f"""Generate ONE realistic, high-quality open-ended interview question about {skill}.
 
 Topic: {current_topic}
-Level: {level} ({level_config["description"]})
-Rule: {level_config["desc_rules"]}
+Target Audience: {level} ({level_config["description"]})
+Guidelines: {level_config["desc_rules"]}
 
-Already asked (don't repeat): {asked}
+Already asked in this session (do NOT repeat these): {asked}
 
-Return ONLY the question. No numbering, no prefix, no extra text."""
+Strict Rules:
+- The question must be a standard, real-world interview question.
+- The wording must be perfectly clear, direct, and unambiguous.
+- Do NOT ask tricky or convoluted questions.
+- Return ONLY the question text itself. No numbering, no prefix, no quotes."""
 
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=[
-            {"role": "system", "content": f"You are a {skill} interviewer. Ask a SHORT, CLEAR question about '{current_topic}' for {level} level. Max 1-2 sentences."},
+            {"role": "system", "content": f"You are an expert {skill} technical interviewer. Ask a highly relevant, extremely clear interview question. Max 1-2 sentences."},
             {"role": "user", "content": prompt}
         ],
-        temperature=0.8,
+        temperature=0.85,
         max_tokens=level_config["max_tokens_desc"],
-        seed=seed + question_number,
     )
 
     result = response.choices[0].message.content.strip()

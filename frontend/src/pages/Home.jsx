@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect } from "react";
 import { startInterview } from "../services/api";
 import { useTheme } from "../ThemeContext";
 import CosmicBackground from "../components/CosmicBackground";
-import { getUserMemory } from "../services/api";
 
 /* ─── Real SVG Technology Logos ─── */
 const PythonLogo = ({ size = 22 }) => (
@@ -109,27 +108,6 @@ function Home({ onStart, user, onLogout }) {
   const [hoveredSkill, setHoveredSkill] = useState(null);
   const [hoveredLevel, setHoveredLevel] = useState(null);
   const [btnHover, setBtnHover] = useState(false);
-  const [userMemory, setUserMemory] = useState(null);
-  const [memoryLoading, setMemoryLoading] = useState(false);
-
-  useEffect(() => {
-    const fetchMemory = async () => {
-      if (!user?.name) return;
-      setMemoryLoading(true);
-      try {
-        const res = await getUserMemory(user.name);
-        if (res.data.exists) {
-          setUserMemory(res.data);
-        } else {
-          setUserMemory(null);
-        }
-      } catch (err) {
-        setUserMemory(null);
-      }
-      setMemoryLoading(false);
-    };
-    fetchMemory();
-  }, [user?.name]);
 
   const handleStart = async () => {
     setLoading(true);
@@ -223,56 +201,6 @@ function Home({ onStart, user, onLogout }) {
 
         {/* Card */}
         <div style={styles.card}>
-          {/* Welcome Back Card */}
-          {userMemory && (
-            <div style={styles.memoryCard}>
-              <div style={styles.memoryHeader}>
-                <span style={styles.memoryEmoji}>👋</span>
-                <div>
-                  <p style={styles.memoryTitle}>Welcome back, {user?.name || "Guest"}!</p>
-                  <p style={styles.memorySubtitle}>
-                    {userMemory.total_sessions} sessions completed
-                  </p>
-                </div>
-                <span style={{
-                  ...styles.trendBadge,
-                  color: userMemory.trend === "improving" ? "#10b981" :
-                    userMemory.trend === "declining" ? "#ef4444" : "#f59e0b",
-                  background: userMemory.trend === "improving" ? "rgba(16,185,129,0.1)" :
-                    userMemory.trend === "declining" ? "rgba(239,68,68,0.1)" : "rgba(245,158,11,0.1)",
-                }}>
-                  {userMemory.trend === "improving" ? "📈 Improving" :
-                    userMemory.trend === "declining" ? "📉 Needs Work" : "➡️ Stable"}
-                </span>
-              </div>
-
-              <div style={styles.memoryStats}>
-                <div style={styles.memoryStat}>
-                  <span style={styles.memoryStatNum}>{userMemory.last_percentage}%</span>
-                  <span style={styles.memoryStatLabel}>Last Score</span>
-                </div>
-                <div style={styles.memoryStat}>
-                  <span style={styles.memoryStatNum}>{userMemory.best_score}%</span>
-                  <span style={styles.memoryStatLabel}>Best Score</span>
-                </div>
-                <div style={styles.memoryStat}>
-                  <span style={styles.memoryStatNum}>{userMemory.last_skill}</span>
-                  <span style={styles.memoryStatLabel}>Last Skill</span>
-                </div>
-              </div>
-
-              {userMemory.weak_areas?.length > 0 && (
-                <div style={styles.memoryWeak}>
-                  <span style={styles.memoryWeakLabel}>⚠️ Focus Areas:</span>
-                  <div style={styles.memoryWeakTags}>
-                    {userMemory.weak_areas.slice(0, 3).map((w, i) => (
-                      <span key={i} style={styles.memoryWeakTag}>{w}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
 
           {/* ── Skill Selection ── */}
           <div style={styles.section}>
@@ -512,68 +440,6 @@ const getStyles = (isDark) => ({
     lineHeight: "1.65",
     margin: "0 auto",
     transition: "color 0.4s ease",
-  },
-  memoryCard: {
-    background: isDark ? "rgba(6,182,212,0.05)" : "rgba(6,182,212,0.06)",
-    border: isDark ? "1px solid rgba(6,182,212,0.15)" : "1px solid rgba(6,182,212,0.2)",
-    borderRadius: "14px", padding: "16px",
-    marginBottom: "20px",
-    animation: "fadeInUp 0.4s ease both",
-  },
-  memoryHeader: {
-    display: "flex", alignItems: "center", gap: "12px",
-    marginBottom: "12px",
-  },
-  memoryEmoji: { fontSize: "24px" },
-  memoryTitle: {
-    fontSize: "14px", fontWeight: "700",
-    color: isDark ? "#f1f5f9" : "#1e293b",
-    margin: 0,
-  },
-  memorySubtitle: {
-    fontSize: "12px", color: "#06b6d4",
-    margin: 0, marginTop: "2px",
-  },
-  trendBadge: {
-    marginLeft: "auto", padding: "4px 10px",
-    borderRadius: "9999px", fontSize: "11px",
-    fontWeight: "700",
-  },
-  memoryStats: {
-    display: "flex", gap: "16px",
-    marginBottom: "12px",
-    padding: "12px",
-    background: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)",
-    borderRadius: "10px",
-  },
-  memoryStat: {
-    display: "flex", flexDirection: "column",
-    alignItems: "center", flex: 1,
-  },
-  memoryStatNum: {
-    fontSize: "18px", fontWeight: "800",
-    color: "#06b6d4",
-    fontFamily: "'JetBrains Mono', monospace",
-  },
-  memoryStatLabel: {
-    fontSize: "10px", color: isDark ? "#4b5563" : "#94a3b8",
-    fontWeight: "600", marginTop: "2px",
-    textTransform: "uppercase", letterSpacing: "0.4px",
-  },
-  memoryWeak: {
-    display: "flex", alignItems: "center", gap: "8px",
-    flexWrap: "wrap",
-  },
-  memoryWeakLabel: {
-    fontSize: "11px", fontWeight: "700",
-    color: "#f59e0b",
-  },
-  memoryWeakTags: { display: "flex", gap: "6px", flexWrap: "wrap" },
-  memoryWeakTag: {
-    padding: "3px 8px", borderRadius: "9999px",
-    background: "rgba(245,158,11,0.08)",
-    border: "1px solid rgba(245,158,11,0.15)",
-    color: "#f59e0b", fontSize: "11px", fontWeight: "600",
   },
 
   /* ── Card ── */
