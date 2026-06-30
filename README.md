@@ -87,7 +87,7 @@ Open `http://localhost:5173` in your browser.
 
 ## 👨‍💻 Developed By
 
-Built with ❤️ by **Jay Chavda / Saubhagyam**. 
+Built with ❤️ by **Jay Chavda**. 
 A showcase of full-stack engineering, AI integration, and robust system design.
 
 ---
