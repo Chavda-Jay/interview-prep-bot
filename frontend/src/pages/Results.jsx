@@ -1,7 +1,8 @@
-import { getScore } from "../services/api";
+import { getScore, submitAppReview } from "../services/api";
 import { useTheme } from "../ThemeContext";
 import { useState, useEffect, useMemo } from "react";
 import CosmicBackground from "../components/CosmicBackground";
+
 
 const CircleProgress = ({ percentage, color, size = 180, strokeWidth = 14 }) => {
     const radius = (size - strokeWidth) / 2;
@@ -61,6 +62,13 @@ function Results({ sessionData, onRestart }) {
     const [results, setResults] = useState(null);
     const [expandedQ, setExpandedQ] = useState(null);
     const [btnHover, setBtnHover] = useState(false);
+    
+    // Feedback State
+    const [rating, setRating] = useState(0);
+    const [hoverRating, setHoverRating] = useState(0);
+    const [feedbackComment, setFeedbackComment] = useState("");
+    const [feedbackStatus, setFeedbackStatus] = useState("idle"); // idle, submitting, success
+
     const styles = useMemo(() => getStyles(isDark), [isDark]);
 
     useEffect(() => {
@@ -252,6 +260,73 @@ function Results({ sessionData, onRestart }) {
                     </button>
                 </div>
 
+                {/* ── Feedback / Rate Your Experience ── */}
+                <div style={styles.feedbackSection}>
+                    {feedbackStatus === "success" ? (
+                        <div style={styles.feedbackSuccess}>
+                            <div style={styles.successIcon}>❤️</div>
+                            <h3>Thank You!</h3>
+                            <p>Your feedback helps us make the AI even better.</p>
+                        </div>
+                    ) : (
+                        <>
+                            <h3 style={styles.feedbackTitle}>Rate Your Experience</h3>
+                            <p style={styles.feedbackDesc}>Did you enjoy this interview? Let us know!</p>
+                            
+                            <div style={styles.starsContainer}>
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                    <span
+                                        key={star}
+                                        style={{
+                                            ...styles.star,
+                                            color: (hoverRating || rating) >= star ? "#f59e0b" : (isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)")
+                                        }}
+                                        onMouseEnter={() => setHoverRating(star)}
+                                        onMouseLeave={() => setHoverRating(0)}
+                                        onClick={() => setRating(star)}
+                                    >
+                                        ★
+                                    </span>
+                                ))}
+                            </div>
+                            
+                            <textarea
+                                style={styles.feedbackInput}
+                                placeholder="Any suggestions or comments? (Optional)"
+                                value={feedbackComment}
+                                onChange={(e) => setFeedbackComment(e.target.value)}
+                            />
+                            
+                            <button
+                                style={{
+                                    ...styles.submitFeedbackBtn,
+                                    opacity: rating === 0 ? 0.5 : 1,
+                                    cursor: rating === 0 ? "not-allowed" : "pointer"
+                                }}
+                                disabled={rating === 0 || feedbackStatus === "submitting"}
+                                onClick={async () => {
+                                    if (rating > 0) {
+                                        setFeedbackStatus("submitting");
+                                        try {
+                                            await submitAppReview({
+                                                session_id: sessionData.session_id,
+                                                rating,
+                                                comment: feedbackComment
+                                            });
+                                            setFeedbackStatus("success");
+                                        } catch (error) {
+                                            console.error("Feedback error", error);
+                                            setFeedbackStatus("idle");
+                                        }
+                                    }
+                                }}
+                            >
+                                {feedbackStatus === "submitting" ? "Submitting..." : "Submit Feedback"}
+                            </button>
+                        </>
+                    )}
+                </div>
+
             </div>
         </div>
     );
@@ -415,6 +490,38 @@ const getStyles = (isDark) => ({
         transform: "translateY(-3px)",
         boxShadow: "0 15px 35px rgba(14,165,233,0.4)",
     },
+
+    /* ── Feedback Section ── */
+    feedbackSection: {
+        marginTop: "40px",
+        background: isDark ? "rgba(12,13,22,0.7)" : "rgba(255,255,255,0.8)",
+        backdropFilter: "blur(16px)",
+        border: isDark ? "1px solid rgba(255,255,255,0.05)" : "1px solid rgba(0,0,0,0.04)",
+        borderRadius: "20px", padding: "32px",
+        display: "flex", flexDirection: "column", alignItems: "center",
+        animation: "fadeInUp 0.6s ease 0.5s both",
+    },
+    feedbackTitle: { fontSize: "20px", fontWeight: "700", margin: "0 0 8px 0" },
+    feedbackDesc: { fontSize: "14px", color: isDark ? "#94a3b8" : "#64748b", margin: "0 0 20px 0" },
+    starsContainer: { display: "flex", gap: "8px", marginBottom: "20px" },
+    star: { fontSize: "40px", cursor: "pointer", transition: "color 0.2s ease" },
+    feedbackInput: {
+        width: "100%", maxWidth: "400px", minHeight: "80px",
+        background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.02)",
+        border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(0,0,0,0.1)",
+        borderRadius: "12px", padding: "12px 16px",
+        color: isDark ? "#f1f5f9" : "#1e293b", fontSize: "14px",
+        outline: "none", resize: "vertical", fontFamily: "inherit",
+        marginBottom: "20px"
+    },
+    submitFeedbackBtn: {
+        padding: "12px 24px", borderRadius: "10px", border: "none",
+        background: isDark ? "#334155" : "#e2e8f0",
+        color: isDark ? "#f8fafc" : "#0f172a",
+        fontSize: "14px", fontWeight: "700", transition: "all 0.2s ease",
+    },
+    feedbackSuccess: { textAlign: "center", padding: "20px 0" },
+    successIcon: { fontSize: "48px", marginBottom: "10px", animation: "fadeInUp 0.4s ease" }
 });
 
 /* Inject animations */

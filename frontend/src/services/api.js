@@ -21,6 +21,10 @@ export const getScore = (sessionId) => API.get(`/feedback/score/${sessionId}`);
 export const endInterview = (sessionId) =>
     API.post(`/interview/end/${sessionId}`);
 
+// Submit User Feedback/Review
+export const submitAppReview = (data) =>
+    API.post(`/feedback/submit_review`, data);
+
 // User memory fetch karo
 export const getUserMemory = (userName) =>
     API.get(`/interview/memory/${encodeURIComponent(userName)}`);
