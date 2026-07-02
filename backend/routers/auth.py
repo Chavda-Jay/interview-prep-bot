@@ -19,7 +19,7 @@ class ResetPasswordRequest(BaseModel):
     new_password: str
 
 @router.post("/register")
-async def register(request: RegisterRequest, background_tasks: BackgroundTasks):
+def register(request: RegisterRequest, background_tasks: BackgroundTasks):
     result = register_user(
         request.name,
         request.email,
@@ -34,7 +34,7 @@ async def register(request: RegisterRequest, background_tasks: BackgroundTasks):
     return {"success": True, "data": result}
 
 @router.post("/login")
-async def login(request: LoginRequest, background_tasks: BackgroundTasks):
+def login(request: LoginRequest, background_tasks: BackgroundTasks):
     result = login_user(request.email, request.password)
     if "error" in result:
         return {"success": False, "message": result["error"]}
@@ -45,7 +45,7 @@ async def login(request: LoginRequest, background_tasks: BackgroundTasks):
     return {"success": True, "data": result}
 
 @router.post("/reset-password")
-async def reset_password_route(request: ResetPasswordRequest):
+def reset_password_route(request: ResetPasswordRequest):
     result = reset_password(request.email, request.new_password)
     if "error" in result:
         return {"success": False, "message": result["error"]}

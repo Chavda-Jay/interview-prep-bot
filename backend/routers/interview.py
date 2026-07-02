@@ -36,7 +36,7 @@ class SubmitAnswerRequest(BaseModel):
 
 
 @router.post("/start")
-async def start_interview(request: StartInterviewRequest):
+def start_interview(request: StartInterviewRequest):
     db = get_db()
 
     # Level ke hisaab se total questions
@@ -111,7 +111,7 @@ async def start_interview(request: StartInterviewRequest):
 
 
 @router.post("/next-question")
-async def next_question(session_id: str):
+def next_question(session_id: str):
     db = get_db()
     session = db["sessions"].find_one({"session_id": session_id})
     if not session:
@@ -167,7 +167,7 @@ async def next_question(session_id: str):
 
 
 @router.post("/submit-answer")
-async def submit_answer(request: SubmitAnswerRequest):
+def submit_answer(request: SubmitAnswerRequest):
     db = get_db()
 
     if request.question_type == "mcq":
@@ -236,7 +236,7 @@ async def submit_answer(request: SubmitAnswerRequest):
 
 
 @router.get("/session/{session_id}")
-async def get_session(session_id: str):
+def get_session(session_id: str):
     db = get_db()
     session = db["sessions"].find_one({"session_id": session_id}, {"_id": 0})
     if not session:
@@ -245,7 +245,7 @@ async def get_session(session_id: str):
 
 
 @router.post("/end/{session_id}")
-async def end_interview(session_id: str):
+def end_interview(session_id: str):
     db = get_db()
     
     # Session fetch karo
@@ -280,7 +280,7 @@ async def end_interview(session_id: str):
 
     
 @router.get("/memory/{user_name}")
-async def get_memory(user_name: str):
+def get_memory(user_name: str):
     """User ki memory fetch karo"""
     from services.memory_service import get_user_progress
     progress = get_user_progress(user_name)

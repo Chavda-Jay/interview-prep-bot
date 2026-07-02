@@ -10,7 +10,8 @@ ALGORITHM = "HS256"
 TOKEN_EXPIRE_DAYS = 30
 
 def hash_password(password: str) -> str:
-    salt = bcrypt.gensalt()
+    # Use rounds=10 to speed up hashing (default is 12)
+    salt = bcrypt.gensalt(rounds=10)
     return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
 
 def verify_password(plain: str, hashed: str) -> bool:

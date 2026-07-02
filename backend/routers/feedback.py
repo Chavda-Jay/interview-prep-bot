@@ -14,7 +14,7 @@ class ReviewSubmit(BaseModel):
 
 
 @router.get("/score/{session_id}")
-async def get_score(session_id: str):
+def get_score(session_id: str):
     db = get_db()
 
     session = db["sessions"].find_one({"session_id": session_id}, {"_id": 0})
@@ -39,7 +39,7 @@ async def get_score(session_id: str):
 
 
 @router.post("/submit_review")
-async def submit_review(review: ReviewSubmit):
+def submit_review(review: ReviewSubmit):
     db = get_db()
     
     # Get session details to link the review
