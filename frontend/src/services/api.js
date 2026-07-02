@@ -4,7 +4,9 @@ const getBaseUrl = () => {
     if (import.meta.env.VITE_API_URL) {
         return import.meta.env.VITE_API_URL;
     }
-    return `http://${window.location.hostname}:8000`;
+    // Return empty string to let axios use the current origin (e.g. phone's IP:5173).
+    // Vite will then proxy these requests internally to port 8000.
+    return '';
 };
 
 const API = axios.create({
