@@ -36,14 +36,16 @@ def register(request: RegisterRequest, req: Request):
         return {"success": False, "message": result["error"]}
     
     # Send welcome email SYNCHRONOUSLY — guaranteed delivery
+    email_sent = False
     logger.info(f"[REGISTER] Success. Now sending welcome email to {request.email}...")
     try:
         send_welcome_email(request.email, request.name)
+        email_sent = True
         logger.info(f"[REGISTER] Welcome email sent to {request.email}")
     except Exception as e:
         logger.error(f"[REGISTER] Welcome email FAILED for {request.email}: {e}")
     
-    return {"success": True, "data": result}
+    return {"success": True, "data": result, "email_sent": email_sent}
 
 @router.post("/login")
 def login(request: LoginRequest, req: Request):
@@ -55,14 +57,16 @@ def login(request: LoginRequest, req: Request):
         return {"success": False, "message": result["error"]}
     
     # Send login alert email SYNCHRONOUSLY — guaranteed delivery
+    email_sent = False
     logger.info(f"[LOGIN] Success for {request.email}. Now sending login alert email...")
     try:
         send_login_alert(request.email, result["name"])
+        email_sent = True
         logger.info(f"[LOGIN] Login alert email sent to {request.email}")
     except Exception as e:
         logger.error(f"[LOGIN] Login alert email FAILED for {request.email}: {e}")
     
-    return {"success": True, "data": result}
+    return {"success": True, "data": result, "email_sent": email_sent}
 
 @router.post("/reset-password")
 def reset_password_route(request: ResetPasswordRequest):
@@ -79,9 +83,9 @@ async def get_me(token: str):
         return {"success": False, "message": "Invalid token"}
     return {"success": True, "data": payload}
 
-@router.get("/test-email/{email}")
+@router.get("/test-email")
 def test_email(email: str, req: Request):
-    """Test endpoint — open this URL in phone browser to verify email sending works."""
+    """Test endpoint — use: /auth/test-email?email=your@email.com"""
     logger.info(f"[TEST-EMAIL] Triggered for {email}, User-Agent={req.headers.get('user-agent', 'unknown')}")
     try:
         send_email(
