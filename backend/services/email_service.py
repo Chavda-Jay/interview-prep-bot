@@ -2,8 +2,12 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import os
+import time
+import logging
 from dotenv import load_dotenv
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 # Load .env file
 env_path = Path(__file__).resolve().parent.parent.parent / "config" / ".env"
@@ -15,7 +19,7 @@ SENDER_PASSWORD = os.getenv("EMAIL_PASSWORD", "")
 
 def send_email(to_email: str, subject: str, html_body: str):
     if not SENDER_EMAIL or not SENDER_PASSWORD:
-        print("Email configuration not found. Skipping email send.")
+        logger.warning("Email configuration not found. Skipping email send.")
         return
 
     msg = MIMEMultipart("alternative")
@@ -26,14 +30,22 @@ def send_email(to_email: str, subject: str, html_body: str):
     part = MIMEText(html_body, "html")
     msg.attach(part)
 
-    try:
-        # Connect to Gmail SMTP server
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-            server.login(SENDER_EMAIL, SENDER_PASSWORD)
-            server.sendmail(SENDER_EMAIL, to_email, msg.as_string())
-        print(f"Email sent successfully to {to_email}")
-    except Exception as e:
-        print(f"Failed to send email to {to_email}: {e}")
+    # Retry up to 2 times for transient failures (common on Render free tier cold starts)
+    max_retries = 2
+    for attempt in range(max_retries + 1):
+        try:
+            # Connect to Gmail SMTP server
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=30) as server:
+                server.login(SENDER_EMAIL, SENDER_PASSWORD)
+                server.sendmail(SENDER_EMAIL, to_email, msg.as_string())
+            logger.info(f"Email sent successfully to {to_email}")
+            return  # Success, exit
+        except Exception as e:
+            logger.error(f"Email attempt {attempt + 1}/{max_retries + 1} failed for {to_email}: {e}")
+            if attempt < max_retries:
+                time.sleep(2)  # Wait 2 seconds before retry
+            else:
+                logger.error(f"All email attempts failed for {to_email}")
 
 def send_login_alert(user_email: str, user_name: str):
     subject = "Security Alert: New Login to InterviewAI"

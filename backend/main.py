@@ -2,6 +2,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import sys
 import os
+import logging
+
+# Configure logging so email errors show up in Render logs
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -44,4 +51,9 @@ def root():
 
 @app.get("/health")
 def health_check():
-    return {"status": "healthy"}
+    email_configured = bool(os.getenv("EMAIL_SENDER")) and bool(os.getenv("EMAIL_PASSWORD"))
+    return {
+        "status": "healthy",
+        "email_configured": email_configured,
+    }
+

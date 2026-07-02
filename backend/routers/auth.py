@@ -1,7 +1,11 @@
-from fastapi import APIRouter, BackgroundTasks
+from fastapi import APIRouter
 from pydantic import BaseModel
 from services.auth_service import register_user, login_user, reset_password
 from services.email_service import send_login_alert, send_welcome_email
+import threading
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -18,8 +22,21 @@ class ResetPasswordRequest(BaseModel):
     email: str
     new_password: str
 
+
+def _send_email_in_thread(func, *args):
+    """Send email in a daemon thread — more reliable than BackgroundTasks on Render free tier."""
+    def _wrapper():
+        try:
+            func(*args)
+        except Exception as e:
+            logger.error(f"Email thread failed: {e}")
+    
+    t = threading.Thread(target=_wrapper, daemon=False)
+    t.start()
+
+
 @router.post("/register")
-def register(request: RegisterRequest, background_tasks: BackgroundTasks):
+def register(request: RegisterRequest):
     result = register_user(
         request.name,
         request.email,
@@ -28,19 +45,19 @@ def register(request: RegisterRequest, background_tasks: BackgroundTasks):
     if "error" in result:
         return {"success": False, "message": result["error"]}
         
-    # Send welcome email in background
-    background_tasks.add_task(send_welcome_email, request.email, request.name)
+    # Send welcome email in a separate thread (reliable on Render free tier)
+    _send_email_in_thread(send_welcome_email, request.email, request.name)
     
     return {"success": True, "data": result}
 
 @router.post("/login")
-def login(request: LoginRequest, background_tasks: BackgroundTasks):
+def login(request: LoginRequest):
     result = login_user(request.email, request.password)
     if "error" in result:
         return {"success": False, "message": result["error"]}
         
-    # Send login alert email in background
-    background_tasks.add_task(send_login_alert, request.email, result["name"])
+    # Send login alert email in a separate thread (reliable on Render free tier)
+    _send_email_in_thread(send_login_alert, request.email, result["name"])
     
     return {"success": True, "data": result}
 
