@@ -40,8 +40,8 @@ def start_interview(request: StartInterviewRequest):
     db = get_db()
 
     # Level ke hisaab se total questions
-    total_map = {"beginner": 10, "intermediate": 15, "advanced": 20}
-    total_questions = total_map.get(request.level, 10)
+    total_map = {"beginner": 15, "intermediate": 15, "advanced": 15}
+    total_questions = total_map.get(request.level, 15)
 
     # Unique seed per session
     session_seed = random.randint(1, 999999)

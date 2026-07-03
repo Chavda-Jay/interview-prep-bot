@@ -259,28 +259,85 @@ DEFAULT_TOPICS = {
 }
 
 
-# ─── Level config ───
+# ─── Level config — DETAILED guidelines with real interview examples ───
 LEVEL_GUIDELINES = {
     "beginner": {
-        "description": "a BEGINNER (0-1 years of experience)",
-        "mcq_rules": "Standard, frequently asked foundational question. Test basic concepts. Max 20 words. Must be extremely clear.",
-        "desc_rules": "Standard foundational interview question (e.g., 'What is...', 'Explain...'). Max 25 words. Must be direct and unambiguous.",
-        "max_tokens_mcq": 200,
-        "max_tokens_desc": 60,
+        "description": "a BEGINNER (fresher / 0-1 years experience, college student or just started learning)",
+        "mcq_rules": """Ask a clear, fundamental concept question that a fresher would face in their first technical interview.
+The question should test basic understanding — definitions, syntax, simple behavior.
+GOOD EXAMPLES of beginner MCQ questions:
+- "What is the output of print(type([])) in Python?"
+- "Which keyword is used to define a function in Python?"
+- "What does the === operator do in JavaScript?"
+- "Which data type is immutable in Python?"
+BAD EXAMPLES (do NOT ask these — too vague or confusing):
+- "Which of the following best describes the concept?" (too vague)
+- "What is the most efficient way to..." (too advanced for beginner)
+Keep the question under 25 words. Use simple English.""",
+        "desc_rules": """Ask a straightforward definition or explanation question like a real interviewer would ask a fresher.
+GOOD EXAMPLES of beginner descriptive questions:
+- "What is the difference between a list and a tuple in Python?"
+- "Explain what a variable is and how you create one in Python."
+- "What is the purpose of the 'return' statement in a function?"
+- "What are props in React and how do you use them?"
+BAD EXAMPLES (do NOT ask these):
+- "Discuss the implications of..." (too academic)
+- "What are your thoughts on..." (too open-ended)
+Keep the question under 25 words. Ask ONE clear thing.""",
+        "max_tokens_mcq": 250,
+        "max_tokens_desc": 80,
     },
     "intermediate": {
-        "description": "an INTERMEDIATE developer (2-4 years of experience)",
-        "mcq_rules": "Practical, scenario-based or deeper conceptual question. Max 30 words. Must be clear and unambiguous.",
-        "desc_rules": "Practical interview question asking 'How', 'Why', or comparing two concepts. Max 35 words. Must be realistic.",
-        "max_tokens_mcq": 250,
-        "max_tokens_desc": 100,
+        "description": "an INTERMEDIATE developer (2-4 years experience, working professional who knows basics well)",
+        "mcq_rules": """Ask a practical, scenario-based or deeper conceptual question that tests real working knowledge.
+The question should test HOW things work, WHY certain approaches are better, or WHAT HAPPENS in specific scenarios.
+GOOD EXAMPLES of intermediate MCQ questions:
+- "What will be the output of the following code snippet: [short code]?"
+- "Which hook should you use to perform side effects in a React functional component?"
+- "What is the time complexity of searching in a Python dictionary?"
+- "In JavaScript, what is the difference between 'null' and 'undefined'?"
+BAD EXAMPLES (do NOT ask these):
+- "Which of the following is correct?" without clear context
+- Questions that are actually beginner level disguised with complex wording
+Keep the question under 35 words. Be specific and practical.""",
+        "desc_rules": """Ask a practical "how/why/compare" question that a 2-4 year experienced developer would face in an interview.
+GOOD EXAMPLES of intermediate descriptive questions:
+- "Explain how useEffect cleanup works and give a real-world example where it's needed."
+- "What is the difference between shallow copy and deep copy? When would each cause bugs?"
+- "How does JavaScript's event loop work? Explain with an example."
+- "What is the N+1 query problem and how do you solve it?"
+BAD EXAMPLES (do NOT ask these):
+- "Tell me about closures" (too vague — ask something specific)
+- "What do you know about X?" (not how real interviews work)
+Keep the question under 35 words. Ask something specific and practical.""",
+        "max_tokens_mcq": 300,
+        "max_tokens_desc": 120,
     },
     "advanced": {
-        "description": "an ADVANCED developer (5+ years of experience)",
-        "mcq_rules": "Advanced architecture, edge-case, or performance optimization question. Max 40 words. Must be professionally phrased and clear.",
-        "desc_rules": "In-depth architecture, system design, or complex scenario question. Max 50 words. Must be highly relevant to senior roles.",
-        "max_tokens_mcq": 300,
-        "max_tokens_desc": 150,
+        "description": "an ADVANCED / SENIOR developer (5+ years experience, leads teams, makes architecture decisions)",
+        "mcq_rules": """Ask a deep technical question about internals, architecture decisions, performance, or edge cases.
+The question should test expertise that only comes from real production experience.
+GOOD EXAMPLES of advanced MCQ questions:
+- "In Python, what happens to threads when the GIL is acquired during a CPU-bound operation?"
+- "Which React rendering optimization prevents unnecessary child re-renders when parent state changes?"
+- "In a Node.js cluster, how is an incoming TCP connection distributed to worker processes?"
+- "What is the main difference between optimistic and pessimistic locking in databases?"
+BAD EXAMPLES (do NOT ask these):
+- Simple definition questions dressed up with big words
+- Questions where all options are obviously wrong except one
+Keep the question under 45 words. Make all 4 options technically plausible.""",
+        "desc_rules": """Ask a deep architecture, system design, trade-off, or production-scenario question for senior developers.
+GOOD EXAMPLES of advanced descriptive questions:
+- "How would you design a rate limiter for a high-traffic API? What data structures and algorithms would you use?"
+- "Explain the trade-offs between server-side rendering and client-side rendering for a large e-commerce application."
+- "Your Node.js application has a memory leak in production. Walk me through how you would diagnose and fix it."
+- "How does Python's garbage collector handle circular references? Explain the generational approach."
+BAD EXAMPLES (do NOT ask these):
+- "What is a design pattern?" (too basic for senior level)
+- "Explain everything about X" (too broad)
+Keep the question under 50 words. Ask about real-world scenarios and trade-offs.""",
+        "max_tokens_mcq": 350,
+        "max_tokens_desc": 180,
     },
 }
 
@@ -297,9 +354,9 @@ def get_shuffled_topics(skill: str, level: str, seed: int) -> list:
 def get_question_schedule(level: str, seed: int) -> list:
     """Generate a shuffled schedule of question types (mcq/descriptive) for a session."""
     config = {
-        "beginner": {"total": 10, "mcq": 4, "desc": 6},
+        "beginner": {"total": 15, "mcq": 6, "desc": 9},
         "intermediate": {"total": 15, "mcq": 6, "desc": 9},
-        "advanced": {"total": 20, "mcq": 8, "desc": 12},
+        "advanced": {"total": 15, "mcq": 6, "desc": 9},
     }
     c = config.get(level, config["beginner"])
     schedule = ["mcq"] * c["mcq"] + ["descriptive"] * c["desc"]
@@ -326,31 +383,34 @@ def generate_mcq_question(skill: str, level: str, asked_questions: list = None, 
     level_config = LEVEL_GUIDELINES.get(level, LEVEL_GUIDELINES["beginner"])
     asked = "\n".join(f"- {q}" for q in asked_questions) if asked_questions else "None"
 
-    prompt = f"""Generate ONE realistic, high-quality multiple-choice interview question about {skill}.
+    prompt = f"""You are conducting a real {skill} technical interview. Generate ONE multiple-choice question.
 
-Topic: {current_topic}
-Target Audience: {level} ({level_config["description"]})
-Guidelines: {level_config["mcq_rules"]}
+TOPIC TO COVER: {current_topic}
+CANDIDATE LEVEL: {level_config["description"]}
 
-Already asked in this session (do NOT repeat these): {asked}
+{level_config["mcq_rules"]}
 
-You MUST respond in this EXACT JSON format, nothing else:
+PREVIOUSLY ASKED (do NOT repeat or ask similar questions):
+{asked}
+
+RESPONSE FORMAT — return ONLY this JSON, nothing else:
 {{"question": "your clear question here", "options": ["A. option1", "B. option2", "C. option3", "D. option4"], "correct": "A"}}
 
-Strict Rules:
-- The question must be a standard, real-world interview question.
-- The wording must be perfectly clear, unambiguous, and grammatically correct.
-- All 4 options must be plausible, but only ONE is definitely correct.
-- 'correct' field must be just the letter (A, B, C, or D).
-- Return ONLY valid JSON, no extra text."""
+CRITICAL RULES:
+1. Ask EXACTLY what a real interviewer at a top tech company (Google, Amazon, Infosys, TCS) would ask.
+2. The question must be crystal clear — a candidate should immediately understand what is being asked.
+3. All 4 options must be technically plausible answers (no joke options like "None of the above" unless genuinely needed).
+4. Only ONE option must be definitively correct.
+5. The 'correct' field must be just the letter: A, B, C, or D.
+6. Do NOT include any text outside the JSON. No explanations, no markdown."""
 
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=[
-            {"role": "system", "content": f"You are an expert {skill} technical interviewer. Generate clear, realistic interview questions. Return ONLY valid JSON. No markdown, no extra text."},
+            {"role": "system", "content": f"You are a senior {skill} technical interviewer at a top tech company. You have 10+ years of experience interviewing candidates. You ask clear, precise, and practical questions that test real understanding — not trivia or trick questions. You MUST return ONLY valid JSON. No markdown code blocks, no extra text before or after the JSON."},
             {"role": "user", "content": prompt}
         ],
-        temperature=0.85,
+        temperature=0.7,
         max_tokens=level_config["max_tokens_mcq"],
     )
 
@@ -379,6 +439,7 @@ def parse_mcq_response(raw: str, topic: str, skill: str) -> dict:
                 formatted_options = []
                 letters = ["A", "B", "C", "D"]
                 for i, opt in enumerate(options):
+                    
                     opt_text = opt.strip()
                     # Remove existing prefix if any
                     for prefix in ["A. ", "B. ", "C. ", "D. ", "A) ", "B) ", "C) ", "D) "]:

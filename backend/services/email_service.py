@@ -148,7 +148,7 @@ def send_welcome_email(user_email: str, user_name: str):
                   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 35px;">
                     <tr>
                       <td align="center">
-                        <a href="http://localhost:5173" style="background-color: #06b6d4; color: #ffffff; text-decoration: none; padding: 14px 36px; border-radius: 6px; font-size: 16px; font-weight: 600; display: inline-block;">
+                        <a href="{os.getenv('FRONTEND_URL', 'http://localhost:5173')}" style="background-color: #06b6d4; color: #ffffff; text-decoration: none; padding: 14px 36px; border-radius: 6px; font-size: 16px; font-weight: 600; display: inline-block;">
                           Start Practicing Now
                         </a>
                       </td>

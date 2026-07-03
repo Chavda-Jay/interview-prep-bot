@@ -11,6 +11,12 @@ function AppContent() {
   const { user, loading, logout } = useAuth();
   const [page, setPage] = useState("home");
   const [sessionData, setSessionData] = useState(null);
+  const [loginKey, setLoginKey] = useState(0);
+
+  const handleLogout = () => {
+    logout();
+    setLoginKey(k => k + 1); // Force Login to remount with clean state
+  };
 
   if (loading) return (
     <div style={{
@@ -26,7 +32,7 @@ function AppContent() {
   if (!user) return (
     <>
       <ThemeToggle />
-      <Login onSuccess={() => setPage("home")} />
+      <Login key={loginKey} onSuccess={() => setPage("home")} />
     </>
   );
 
@@ -36,7 +42,7 @@ function AppContent() {
       {page === "home" && (
         <Home
           user={user}
-          onLogout={logout}
+          onLogout={handleLogout}
           onStart={(data) => {
             setSessionData(data);
             setPage("interview");

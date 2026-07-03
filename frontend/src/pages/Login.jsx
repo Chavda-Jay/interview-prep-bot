@@ -157,6 +157,7 @@ function Login({ onSuccess }) {
                                 placeholder="John Doe"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
+                                autoComplete="off"
                             />
                         </div>
                     )}
@@ -169,6 +170,7 @@ function Login({ onSuccess }) {
                             placeholder="john@example.com"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
+                            autoComplete="off"
                         />
                     </div>
 
@@ -182,6 +184,7 @@ function Login({ onSuccess }) {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+                                autoComplete="new-password"
                             />
                             <div
                                 style={{

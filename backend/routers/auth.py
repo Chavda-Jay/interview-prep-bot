@@ -2,6 +2,8 @@ from fastapi import APIRouter, Request
 from pydantic import BaseModel
 from services.auth_service import register_user, login_user, reset_password
 from services.email_service import send_login_alert, send_welcome_email, send_email
+from database.mongo_client import get_db
+from datetime import datetime, timedelta
 import logging
 
 logger = logging.getLogger(__name__)
@@ -35,15 +37,10 @@ def register(request: RegisterRequest, req: Request):
         logger.warning(f"[REGISTER] Failed for {request.email}: {result['error']}")
         return {"success": False, "message": result["error"]}
     
-    # Send welcome email SYNCHRONOUSLY — guaranteed delivery
-    email_sent = False
-    logger.info(f"[REGISTER] Success. Now sending welcome email to {request.email}...")
-    try:
-        send_welcome_email(request.email, request.name)
-        email_sent = True
-        logger.info(f"[REGISTER] Welcome email sent to {request.email}")
-    except Exception as e:
-        logger.error(f"[REGISTER] Welcome email FAILED for {request.email}: {e}")
+    # Send welcome email via completely decoupled async queue
+    logger.info(f"[REGISTER] Success. Queueing welcome email to {request.email}...")
+    req.app.state.email_queue.put_nowait((send_welcome_email, (request.email, request.name)))
+    email_sent = True # Queued for background processing
     
     return {"success": True, "data": result, "email_sent": email_sent}
 
@@ -56,15 +53,23 @@ def login(request: LoginRequest, req: Request):
         logger.warning(f"[LOGIN] Failed for {request.email}: {result['error']}")
         return {"success": False, "message": result["error"]}
     
-    # Send login alert email SYNCHRONOUSLY — guaranteed delivery
+    # Skip login alert if user just registered (within 2 minutes)
+    # This prevents sending both Welcome + Security Alert emails together
     email_sent = False
-    logger.info(f"[LOGIN] Success for {request.email}. Now sending login alert email...")
     try:
-        send_login_alert(request.email, result["name"])
-        email_sent = True
-        logger.info(f"[LOGIN] Login alert email sent to {request.email}")
-    except Exception as e:
-        logger.error(f"[LOGIN] Login alert email FAILED for {request.email}: {e}")
+        db = get_db()
+        user_doc = db["users"].find_one({"email": request.email.lower()})
+        created_at = user_doc.get("created_at") if user_doc else None
+        is_new_user = created_at and (datetime.utcnow() - created_at) < timedelta(minutes=2)
+    except Exception:
+        is_new_user = False
+    
+    if is_new_user:
+        logger.info(f"[LOGIN] Skipping login alert for {request.email} — just registered")
+    else:
+        logger.info(f"[LOGIN] Success for {request.email}. Queueing login alert email...")
+        req.app.state.email_queue.put_nowait((send_login_alert, (request.email, result["name"])))
+        email_sent = True # Queued for background processing
     
     return {"success": True, "data": result, "email_sent": email_sent}
 

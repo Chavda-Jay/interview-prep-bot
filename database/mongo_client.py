@@ -23,6 +23,10 @@ def connect_db():
         client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
         client.admin.command('ping')
         db = client[MONGO_DB_NAME]
+        
+        # Create indexes for faster lookups
+        db.users.create_index("email", unique=True)
+        db.sessions.create_index("session_id", unique=True)
         print("MongoDB connected successfully!")
         return db
     except ConnectionFailure as e:

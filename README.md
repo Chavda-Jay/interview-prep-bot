@@ -5,30 +5,42 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)
 ![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white)
 
-**InterviewAI** is an intelligent, full-stack web application designed to help developers ace their technical interviews. By leveraging Advanced Large Language Models (LLMs), the bot dynamically generates customized technical questions based on your chosen technology and difficulty level, evaluates your answers in real-time, and provides detailed feedback and scoring.
+**InterviewAI** is an intelligent, full-stack web application designed to help developers ace their technical interviews. By leveraging Advanced Large Language Models (LLMs), the platform generates customized technical questions, dynamically adjusts timers based on difficulty, evaluates your answers in real-time, and provides highly detailed feedback across 6 critical parameters.
 
-## ✨ Features
+## ✨ Key Features
 
-- **🧠 Dynamic AI Questions:** Generates unique questions using Groq API (Llama-3/Mixtral) tailored to specific tech stacks (Python, React, SQL, etc.) and difficulty levels (Beginner, Intermediate, Advanced).
-- **📝 Real-time Evaluation:** Analyzes your answers instantly, highlighting what you got right and what you missed.
-- **🔐 Secure Authentication:** Full user authentication system with JWT tokens.
-- **📧 Email Notifications:** Automated HTML emails for Welcome Alerts and Security/Login Alerts using SMTP.
-- **📱 Fully Responsive UI:** A premium, modern, glassmorphism-inspired UI that works flawlessly on Mobile, Tablet, and Desktop.
-- **💾 Persistence:** Saves user profiles, session histories, and scores securely in MongoDB.
+- **🧠 Dynamic AI Generation:** Powered by **Groq LLaMA-3.3-70B** via Prompt Engineering to generate highly relevant questions tailored to specific tech stacks (Python, React, JS, Java, Node.js, SQL) and difficulty levels.
+- **⏱️ Standardized Interview Sessions:** Each session consists of exactly 15 questions (6 MCQs and 9 Descriptive).
+- **⏳ Dynamic Timers:** Smart countdown timers that automatically adjust based on the difficulty of the question and whether it's an MCQ or Descriptive type.
+- **📊 Advanced 6-Parameter Evaluation:** The AI analyzes descriptive answers and scores candidates on:
+  1. Technical Knowledge
+  2. Concept Understanding
+  3. Problem Solving
+  4. Communication
+  5. Confidence
+  6. Clarity
+- **🎯 Weak Area Identification:** Automatically detects and highlights topics where the candidate struggled, providing actionable feedback for improvement.
+- **🔐 Secure Authentication:** Full user authentication system with JWT (JSON Web Tokens) and Bcrypt password hashing.
+- **📧 Asynchronous Email Notifications:** Uses an advanced `asyncio.Queue` background worker system to send HTML Welcome and Login alerts via SMTP without blocking the API, ensuring lightning-fast (100ms) user signups and logins.
+- **🛡️ Custom Rate Limiting & Security:** Built-in lightweight middleware to limit requests (100 req/min per IP) and protect the backend from spam/abuse.
+- **⚡ High-Performance Database:** Utilizes MongoDB Atlas with unique indexing (on `email` and `session_id`) for ultra-fast `O(1)` query lookups.
+- **🌗 Theme System:** Custom Dark/Light theme built with React Context API and `localStorage` persistence.
+- **📱 Fully Responsive UI:** A premium, glassmorphism-inspired interface that looks stunning on Mobile, Tablet, and Desktop.
 
 ## 🛠️ Tech Stack
 
 ### Frontend
 - **Framework:** React.js (Vite)
 - **Routing:** React Router DOM
-- **Styling:** Custom CSS (Grid/Flexbox, Glassmorphism, CSS Variables)
-- **State Management & API:** Axios
+- **Styling:** Custom CSS (Grid/Flexbox, Glassmorphism, CSS Variables, Theming)
+- **State Management & API:** React Context API, Axios
 
 ### Backend
 - **Framework:** FastAPI (Python)
-- **AI/LLM:** Groq API
+- **AI/LLM:** Groq API (LLaMA-3.3-70B-Versatile)
 - **Database:** MongoDB Atlas (Motor/PyMongo)
-- **Auth & Security:** JWT (JSON Web Tokens), Passlib (Bcrypt)
+- **Auth & Security:** JWT, Passlib (Bcrypt)
+- **Concurrency:** `asyncio.Queue` & `threading` for background tasks
 - **Email:** Python `smtplib`
 
 ## 🚀 Getting Started (Local Development)
@@ -53,7 +65,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Create a `.env` file inside `config/` (at the root or wherever specified in your code) and add:
+Create a `.env` file inside `config/` and add:
 ```env
 GROQ_API_KEY=your_groq_api_key
 MONGO_URI=your_mongodb_connection_string
@@ -74,7 +86,7 @@ cd frontend
 npm install
 ```
 
-Create a `.env` file in the `frontend` folder if you need custom API mapping, or let it default to localhost. Then start the dev server:
+Start the dev server:
 ```bash
 npm run dev
 ```
@@ -82,8 +94,8 @@ Open `http://localhost:5173` in your browser.
 
 ## 🌍 Deployment
 
-- **Frontend:** Deployed seamlessly on [Vercel](https://vercel.com). Just import the repo and set the `VITE_API_URL` environment variable.
-- **Backend:** Deployed on [Render](https://render.com) using the `requirements.txt`. Remember to configure CORS by adding the `FRONTEND_URL` environment variable.
+- **Frontend:** Deployed seamlessly on [Vercel](https://vercel.com).
+- **Backend:** Deployed on [Render](https://render.com).
 
 ## 👨‍💻 Developed By
 

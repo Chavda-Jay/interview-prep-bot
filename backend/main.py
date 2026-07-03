@@ -3,6 +3,11 @@ from fastapi.middleware.cors import CORSMiddleware
 import sys
 import os
 import logging
+import time
+import asyncio
+from collections import defaultdict
+from fastapi import Request
+from fastapi.responses import JSONResponse
 
 # Configure logging so email errors show up in Render logs
 logging.basicConfig(
@@ -16,6 +21,23 @@ from database.mongo_client import connect_db
 from routers import interview, feedback, auth
 
 app = FastAPI(title="Interview Prep Bot API", version="1.0.0")
+
+# Simple In-Memory Rate Limiter (100 requests per minute per IP)
+request_counts = defaultdict(lambda: {"count": 0, "reset_time": time.time() + 60})
+
+@app.middleware("http")
+async def rate_limit_middleware(request: Request, call_next):
+    client_ip = request.client.host if request.client else "unknown"
+    now = time.time()
+    
+    if now > request_counts[client_ip]["reset_time"]:
+        request_counts[client_ip] = {"count": 1, "reset_time": now + 60}
+    else:
+        request_counts[client_ip]["count"] += 1
+        if request_counts[client_ip]["count"] > 100:
+            return JSONResponse(status_code=429, content={"detail": "Too Many Requests"})
+            
+    return await call_next(request)
 
 # Build allowed origins list — includes local dev + production frontend
 allowed_origins = [
@@ -41,9 +63,20 @@ app.include_router(feedback.router)
 app.include_router(auth.router)
 
 
+async def email_worker(queue: asyncio.Queue):
+    while True:
+        try:
+            func, args = await queue.get()
+            await asyncio.to_thread(func, *args)
+            queue.task_done()
+        except Exception as e:
+            logging.error(f"Background email worker error: {e}")
+
 @app.on_event("startup")
 async def startup_event():
     connect_db()
+    app.state.email_queue = asyncio.Queue()
+    asyncio.create_task(email_worker(app.state.email_queue))
 
 @app.get("/")
 def root():

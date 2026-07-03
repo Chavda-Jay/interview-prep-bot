@@ -18,8 +18,12 @@ function Interview({ sessionData, onFinish }) {
     const [questionCount, setQuestionCount] = useState(1);
     const [submitHover, setSubmitHover] = useState(false);
     // Timer
-    const TIMER_MAP = { beginner: 60, intermediate: 45, advanced: 30 };
-    const TOTAL_TIME = TIMER_MAP[sessionData?.level] || 60;
+    const TIMER_MAP_MCQ = { beginner: 45, intermediate: 35, advanced: 30 };
+    const TIMER_MAP_DESC = { beginner: 90, intermediate: 75, advanced: 60 };
+    const level = sessionData?.level || "beginner";
+    const TOTAL_TIME = questionType === "mcq" 
+        ? (TIMER_MAP_MCQ[level] || 45) 
+        : (TIMER_MAP_DESC[level] || 90);
     const [timeLeft, setTimeLeft] = useState(TOTAL_TIME);
     const timerRef = useRef(null);
 
