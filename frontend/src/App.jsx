@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ThemeProvider } from "./ThemeContext";
 import { AuthProvider, useAuth } from "./AuthContext";
 import ThemeToggle from "./components/ThemeToggle";
@@ -6,12 +6,40 @@ import Login from "./pages/Login";
 import Home from "./pages/Home";
 import Interview from "./pages/Interview";
 import Results from "./pages/Results";
+import Dashboard from "./pages/Dashboard";
 
 function AppContent() {
   const { user, loading, logout } = useAuth();
-  const [page, setPage] = useState("home");
+  const [page, setPageState] = useState(() => {
+      const params = new URLSearchParams(window.location.search);
+      return params.get("page") || "home";
+  });
   const [sessionData, setSessionData] = useState(null);
   const [loginKey, setLoginKey] = useState(0);
+
+  const setPage = (newPage) => {
+      window.history.pushState({ page: newPage }, "", `?page=${newPage}`);
+      setPageState(newPage);
+  };
+
+  useEffect(() => {
+      const handlePopState = (e) => {
+          if (e.state && e.state.page) {
+              setPageState(e.state.page);
+          } else {
+              const params = new URLSearchParams(window.location.search);
+              setPageState(params.get("page") || "home");
+          }
+      };
+      
+      window.addEventListener("popstate", handlePopState);
+      
+      if (!window.history.state) {
+          window.history.replaceState({ page }, "", `?page=${page}`);
+      }
+      
+      return () => window.removeEventListener("popstate", handlePopState);
+  }, [page]);
 
   const handleLogout = () => {
     logout();
@@ -47,6 +75,7 @@ function AppContent() {
             setSessionData(data);
             setPage("interview");
           }}
+          onGoDashboard={() => setPage("dashboard")}
         />
       )}
       {page === "interview" && (
@@ -62,6 +91,12 @@ function AppContent() {
         <Results
           sessionData={sessionData}
           onRestart={() => setPage("home")}
+        />
+      )}
+      {page === "dashboard" && (
+        <Dashboard
+          user={user}
+          onBack={() => setPage("home")}
         />
       )}
     </div>

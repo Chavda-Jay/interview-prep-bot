@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { startInterview } from "../services/api";
+import { startInterview, startHRInterview } from "../services/api";
 import { useTheme } from "../ThemeContext";
 import CosmicBackground from "../components/CosmicBackground";
 
@@ -83,6 +83,22 @@ const SQLLogo = ({ size = 22 }) => (
   </svg>
 );
 
+const CodeIcon = () => (
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="16 18 22 12 16 6"></polyline>
+    <polyline points="8 6 2 12 8 18"></polyline>
+  </svg>
+);
+
+const UsersIcon = () => (
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+    <circle cx="9" cy="7" r="4"></circle>
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+  </svg>
+);
+
 /* ─── Skill & Level Config ─── */
 const skills = [
   { name: "Python", Logo: PythonLogo, color: "#3776AB", glow: "rgba(55,118,171,0.25)" },
@@ -99,7 +115,7 @@ const levels = [
   { name: "advanced", label: "Advanced", desc: "Deep expertise", gradient: "linear-gradient(135deg, #8b5cf6, #ec4899)" },
 ];
 
-function Home({ onStart, user, onLogout }) {
+function Home({ onStart, user, onLogout, onGoDashboard }) {
   const { isDark } = useTheme();
   const styles = useMemo(() => getStyles(isDark), [isDark]);
   const [skill, setSkill] = useState("Python");
@@ -112,8 +128,8 @@ function Home({ onStart, user, onLogout }) {
   const handleStart = async () => {
     setLoading(true);
     try {
-      const res = await startInterview({ user_name: user?.name || "Guest", skill, level });
-      onStart({ ...res.data, totalQuestions: 10 });
+        const res = await startInterview({ user_name: user?.name || "Guest", skill, level });
+        onStart({ ...res.data, totalQuestions: 15 });
     } catch (err) {
       alert("Error starting interview!");
     }
@@ -174,36 +190,59 @@ function Home({ onStart, user, onLogout }) {
                     </div>
                 </div>
             </div>
-            <button
-                onClick={onLogout}
-                style={{
-                    padding: "8px 18px", borderRadius: "10px",
-                    border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(0,0,0,0.1)",
-                    background: isDark ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.6)",
-                    color: isDark ? "#cbd5e1" : "#475569", fontSize: "13px",
-                    fontWeight: "600", cursor: "pointer",
-                    transition: "all 0.2s ease",
-                }}
-                onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "rgba(239,68,68,0.1)";
-                    e.currentTarget.style.color = "#ef4444";
-                    e.currentTarget.style.borderColor = "rgba(239,68,68,0.3)";
-                }}
-                onMouseLeave={(e) => {
-                    e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.6)";
-                    e.currentTarget.style.color = isDark ? "#cbd5e1" : "#475569";
-                    e.currentTarget.style.borderColor = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)";
-                }}
-            >
-                Sign Out
-            </button>
+            <div style={{ display: "flex", gap: "10px" }}>
+                <button
+                    onClick={onGoDashboard}
+                    style={{
+                        padding: "8px 18px", borderRadius: "10px",
+                        border: isDark ? "1px solid rgba(6,182,212,0.3)" : "1px solid rgba(6,182,212,0.4)",
+                        background: isDark ? "rgba(6,182,212,0.1)" : "rgba(6,182,212,0.05)",
+                        color: isDark ? "#22d3ee" : "#0891b2", fontSize: "13px",
+                        fontWeight: "600", cursor: "pointer",
+                        transition: "all 0.2s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "rgba(6,182,212,0.2)";
+                        e.currentTarget.style.transform = "translateY(-1px)";
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.background = isDark ? "rgba(6,182,212,0.1)" : "rgba(6,182,212,0.05)";
+                        e.currentTarget.style.transform = "translateY(0)";
+                    }}
+                >
+                    📊 Dashboard
+                </button>
+                <button
+                    onClick={onLogout}
+                    style={{
+                        padding: "8px 18px", borderRadius: "10px",
+                        border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(0,0,0,0.1)",
+                        background: isDark ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.6)",
+                        color: isDark ? "#cbd5e1" : "#475569", fontSize: "13px",
+                        fontWeight: "600", cursor: "pointer",
+                        transition: "all 0.2s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "rgba(239,68,68,0.1)";
+                        e.currentTarget.style.color = "#ef4444";
+                        e.currentTarget.style.borderColor = "rgba(239,68,68,0.3)";
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.6)";
+                        e.currentTarget.style.color = isDark ? "#cbd5e1" : "#475569";
+                        e.currentTarget.style.borderColor = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)";
+                    }}
+                >
+                    Sign Out
+                </button>
+            </div>
         </div>
 
         {/* Card */}
         <div style={styles.card}>
 
           {/* ── Skill Selection ── */}
-          <div style={styles.section}>
+              <div style={styles.section}>
             <label style={styles.label}>Technology Stack</label>
             <div style={styles.skillGrid} className="responsive-skill-grid">
               {skills.map((s, i) => {
@@ -306,7 +345,6 @@ function Home({ onStart, user, onLogout }) {
               })}
             </div>
           </div>
-
           {/* ── Divider ── */}
           <div style={styles.divider} />
 
@@ -670,16 +708,27 @@ if (typeof document !== "undefined") {
     s.id = id;
     s.textContent = `
       @keyframes spin { to { transform: rotate(360deg); } }
+      @keyframes gradientRotate {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+      }
       @media (min-width: 500px) {
         .responsive-skill-grid { grid-template-columns: repeat(3, 1fr); }
         .responsive-level-grid { grid-template-columns: repeat(3, 1fr); }
       }
       @media (max-width: 499px) {
-        .responsive-skill-grid { grid-template-columns: repeat(2, 1fr); }
-        .responsive-level-grid { grid-template-columns: repeat(3, 1fr); gap: 6px !important; }
-        .responsive-level-grid > button { padding: 12px 4px 10px !important; }
-        .responsive-level-grid > button > span:nth-of-type(1) { font-size: 11px !important; }
-        .responsive-level-grid > button > span:nth-of-type(2) { font-size: 9px !important; line-height: 1.1; }
+        .responsive-skill-grid { grid-template-columns: repeat(2, 1fr); gap: 10px !important; }
+        .responsive-level-grid { grid-template-columns: repeat(1, 1fr); gap: 10px !important; }
+        .responsive-level-grid > button { padding: 14px 10px !important; display: flex; flex-direction: row; justify-content: flex-start; text-align: left; }
+        .responsive-level-grid > button > div { width: 4px !important; height: 100% !important; margin-right: 12px; margin-bottom: 0 !important; }
+        .responsive-level-grid > button > span:nth-of-type(1) { font-size: 15px !important; flex: 1; }
+        .responsive-level-grid > button > span:nth-of-type(2) { font-size: 12px !important; display: none; }
+      }
+      @media (max-width: 768px) {
+        .home-title { font-size: 32px !important; }
+        .home-desc { font-size: 14px !important; padding: 0 10px; }
+        .home-card { padding: 20px 16px !important; }
       }
     `;
     document.head.appendChild(s);

@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import { submitAnswer, getNextQuestion, endInterview } from "../services/api";
+import { submitAnswer, getNextQuestion, endInterview, submitHRAnswer, addHRRound } from "../services/api";
 import { useTheme } from "../ThemeContext";
 // import CosmicBackground from "../components/CosmicBackground";
 
@@ -7,7 +7,7 @@ function Interview({ sessionData, onFinish }) {
     const { isDark } = useTheme();
     const styles = useMemo(() => getStyles(isDark), [isDark]);
 
-    const TOTAL_QUESTIONS = sessionData?.total_questions || 10;
+    const [totalQuestions, setTotalQuestions] = useState(sessionData?.total_questions || 10);
     const [question, setQuestion] = useState(sessionData?.question || "");
     const [questionType, setQuestionType] = useState(sessionData?.question_type || "descriptive");
     const [options, setOptions] = useState(sessionData?.options || []);
@@ -17,6 +17,8 @@ function Interview({ sessionData, onFinish }) {
     const [loading, setLoading] = useState(false);
     const [questionCount, setQuestionCount] = useState(1);
     const [submitHover, setSubmitHover] = useState(false);
+    const [showIntermission, setShowIntermission] = useState(false);
+    const [hrLoading, setHrLoading] = useState(false);
     // Timer
     const TIMER_MAP_MCQ = { beginner: 45, intermediate: 35, advanced: 30 };
     const TIMER_MAP_DESC = { beginner: 90, intermediate: 75, advanced: 60 };
@@ -27,7 +29,7 @@ function Interview({ sessionData, onFinish }) {
     const [timeLeft, setTimeLeft] = useState(TOTAL_TIME);
     const timerRef = useRef(null);
 
-    const progress = Math.round((questionCount / TOTAL_QUESTIONS) * 100);
+    const progress = Math.round((questionCount / totalQuestions) * 100);
 
     // Timer color
     const timerColor = timeLeft > 30 ? "#10b981" : timeLeft > 10 ? "#f59e0b" : "#ef4444";
@@ -61,43 +63,68 @@ function Interview({ sessionData, onFinish }) {
         clearInterval(timerRef.current);
         if (!isAutoSubmit) {
             if (questionType === "mcq" && !selectedOption) return alert("Please select an option!");
-            if (questionType === "descriptive" && !answer.trim()) return alert("Please write an answer!");
+            if ((questionType === "descriptive" || questionType === "hr") && !answer.trim()) return alert("Please write an answer!");
         }
 
         setLoading(true);
         try {
-            // Submit the answer
-            const payload = {
-                session_id: sessionData.session_id,
-                question: question,
-                user_answer: questionType === "mcq" ? (selectedOption || "Time Out") : (answer || "Time Out"),
-                skill: sessionData.skill,
-                question_type: questionType,
-            };
-
-            if (questionType === "mcq") {
-                payload.options = options;
-                payload.correct_answer = correctAnswer;
-            }
-
-            await submitAnswer(payload);
-
-            // Directly move to next question or finish
-            if (questionCount < TOTAL_QUESTIONS) {
-                const nextRes = await getNextQuestion(sessionData.session_id);
-                setQuestion(nextRes.data.question);
-                setQuestionType(nextRes.data.question_type);
-                setOptions(nextRes.data.options || []);
-                setCorrectAnswer(nextRes.data.correct_answer || "");
-                setAnswer("");
-                setSelectedOption(null);
-                setQuestionCount((prev) => prev + 1);
-            } else {
-                await endInterview(sessionData.session_id);
-                onFinish({
+            if (questionType === "hr") {
+                const payload = {
                     session_id: sessionData.session_id,
+                    question: question,
+                    user_answer: answer || "Time Out",
+                    skill: "HR",
+                    question_type: "hr",
+                };
+                const res = await submitHRAnswer(payload);
+                
+                if (res.data.is_complete) {
+                    await endInterview(sessionData.session_id);
+                    onFinish({ session_id: sessionData.session_id, skill: "HR" });
+                } else {
+                    setQuestion(res.data.next_question);
+                    setAnswer("");
+                    setQuestionCount(res.data.question_number);
+                    setTimeLeft(TOTAL_TIME);
+                }
+            } else {
+                // Submit the answer
+                const payload = {
+                    session_id: sessionData.session_id,
+                    question: question,
+                    user_answer: questionType === "mcq" ? (selectedOption || "Time Out") : (answer || "Time Out"),
                     skill: sessionData.skill,
-                });
+                    question_type: questionType,
+                };
+
+                if (questionType === "mcq") {
+                    payload.options = options;
+                    payload.correct_answer = correctAnswer;
+                }
+
+                await submitAnswer(payload);
+
+                // Directly move to next question or finish
+                if (questionCount < totalQuestions) {
+                    const nextRes = await getNextQuestion(sessionData.session_id);
+                    setQuestion(nextRes.data.question);
+                    setQuestionType(nextRes.data.question_type);
+                    setOptions(nextRes.data.options || []);
+                    setCorrectAnswer(nextRes.data.correct_answer || "");
+                    setAnswer("");
+                    setSelectedOption(null);
+                    setQuestionCount((prev) => prev + 1);
+                } else {
+                    if (sessionData.skill !== "HR" && questionType !== "hr") {
+                        setShowIntermission(true);
+                    } else {
+                        await endInterview(sessionData.session_id);
+                        onFinish({
+                            session_id: sessionData.session_id,
+                            skill: sessionData.skill,
+                        });
+                    }
+                }
             }
         } catch (err) {
             alert("Error submitting answer!");
@@ -106,8 +133,12 @@ function Interview({ sessionData, onFinish }) {
     };
 
     const handleFinish = async () => {
-        await endInterview(sessionData.session_id);
-        onFinish({ session_id: sessionData.session_id, skill: sessionData.skill });
+        if (sessionData.skill !== "HR" && questionType !== "hr" && !showIntermission) {
+            setShowIntermission(true);
+        } else {
+            await endInterview(sessionData.session_id);
+            onFinish({ session_id: sessionData.session_id, skill: sessionData.skill });
+        }
     };
 
     const getOptionStyle = (opt) => {
@@ -117,6 +148,59 @@ function Interview({ sessionData, onFinish }) {
         return styles.option;
     };
 
+    const handleProceedToHR = async () => {
+        setHrLoading(true);
+        try {
+            const res = await addHRRound(sessionData.session_id);
+            setQuestion(res.data.question);
+            setQuestionType(res.data.question_type);
+            setQuestionCount(res.data.question_number);
+            setTotalQuestions(res.data.question_number + 7);
+            setAnswer("");
+            setShowIntermission(false);
+            setTimeLeft(TOTAL_TIME);
+        } catch (err) {
+            alert("Error starting HR round!");
+        }
+        setHrLoading(false);
+    };
+
+    if (showIntermission) {
+        return (
+            <div style={styles.page}>
+                <div style={styles.meshBg} />
+                <div style={styles.orb1} />
+                <div style={styles.orb2} />
+                <div style={styles.gridPattern} />
+                <div style={styles.container} className="interview-container">
+                    <div style={{ ...styles.questionCard, textAlign: "center", padding: "60px 40px" }} className="interview-intermission">
+                        <div style={{ fontSize: "48px", marginBottom: "20px" }}>🚀</div>
+                        <h2 style={{ color: isDark ? "#f1f5f9" : "#1e293b", marginBottom: "16px" }}>Technical Round Complete!</h2>
+                        <p style={{ color: isDark ? "#94a3b8" : "#64748b", marginBottom: "32px", fontSize: "15px", lineHeight: "1.6" }}>
+                            Great job finishing the technical assessment.
+                            Most top companies require a Behavioral/HR round to evaluate culture fit and soft skills.
+                        </p>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "16px", alignItems: "center" }}>
+                            <button
+                                style={styles.submitBtn}
+                                onClick={handleProceedToHR}
+                                disabled={hrLoading}
+                            >
+                                {hrLoading ? "Starting HR Round..." : "Proceed to Final HR Round ➔"}
+                            </button>
+                            <button
+                                style={styles.finishEarlyBtn}
+                                onClick={handleFinish}
+                            >
+                                End Interview & View Results
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div style={styles.page}>
             <div style={styles.meshBg} />
@@ -124,20 +208,26 @@ function Interview({ sessionData, onFinish }) {
             <div style={styles.orb2} />
             <div style={styles.gridPattern} />
 
-            <div style={styles.container}>
+            <div style={styles.container} className="interview-container">
                 {/* Top Bar */}
-                <div style={styles.topBar}>
-                    <div style={styles.badges}>
-                        <span style={styles.badge}>{sessionData?.skill}</span>
-                        <span style={styles.badge}>{sessionData?.level}</span>
-                        <span style={{
-                            ...styles.badge,
-                            ...(questionType === "mcq" ? styles.badgeMcq : styles.badgeDesc),
-                        }}>
-                            {questionType === "mcq" ? "MCQ" : "Descriptive"}
-                        </span>
+                <div style={styles.topBar} className="interview-topbar">
+                    <div style={styles.badges} className="interview-badges">
+                        {questionType === "hr" ? (
+                            <span style={{ ...styles.badge, ...styles.badgeDesc }}>🤝 HR Round</span>
+                        ) : (
+                            <>
+                                <span style={styles.badge}>{sessionData?.skill}</span>
+                                <span style={styles.badge}>{sessionData?.level}</span>
+                                <span style={{
+                                    ...styles.badge,
+                                    ...(questionType === "mcq" ? styles.badgeMcq : styles.badgeDesc),
+                                }}>
+                                    {questionType === "mcq" ? "MCQ" : "Descriptive"}
+                                </span>
+                            </>
+                        )}
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }} className="interview-timer-wrap">
                         {/* Timer Circle */}
                         <div style={{ position: "relative", width: "52px", height: "52px" }}>
                             <svg width="52" height="52" style={{ transform: "rotate(-90deg)" }}>
@@ -168,7 +258,7 @@ function Interview({ sessionData, onFinish }) {
                         </div>
                         {/* Q Counter */}
                         <span style={styles.qCounter}>
-                            Q{questionCount}<span style={styles.qTotal}>/{TOTAL_QUESTIONS}</span>
+                            Q{questionCount}<span style={styles.qTotal}>/{totalQuestions}</span>
                         </span>
                     </div>``
                 </div>
@@ -185,16 +275,16 @@ function Interview({ sessionData, onFinish }) {
                 </div>
 
                 {/* Question Card */}
-                <div style={styles.questionCard}>
+                <div style={styles.questionCard} className="interview-qcard">
                     <div style={styles.questionHeader}>
                         <span style={styles.questionLabel}>
                             Question {questionCount}
                             <span style={styles.questionTypeLabel}>
-                                {questionType === "mcq" ? " — Multiple Choice" : " — Descriptive"}
+                                {questionType === "mcq" ? " — Multiple Choice" : questionType === "hr" ? " — Behavioral" : " — Descriptive"}
                             </span>
                         </span>
                     </div>
-                    <p style={styles.questionText}>{question}</p>
+                    <p style={styles.questionText} className="interview-qtext">{question}</p>
                 </div>
 
                 {/* MCQ Options */}
@@ -204,6 +294,7 @@ function Interview({ sessionData, onFinish }) {
                             <button
                                 key={i}
                                 style={getOptionStyle(opt)}
+                                className="interview-option"
                                 onClick={() => setSelectedOption(opt.charAt(0))}
                             >
                                 <span style={styles.optionLetter}>{opt.charAt(0)}</span>
@@ -213,10 +304,11 @@ function Interview({ sessionData, onFinish }) {
                     </div>
                 )}
 
-                {/* Descriptive Textarea */}
-                {questionType === "descriptive" && (
+                {/* Descriptive/HR Textarea */}
+                {(questionType === "descriptive" || questionType === "hr") && (
                     <textarea
                         style={styles.textarea}
+                        className="interview-textarea"
                         placeholder="Type your answer here..."
                         value={answer}
                         onChange={(e) => setAnswer(e.target.value)}
@@ -231,7 +323,8 @@ function Interview({ sessionData, onFinish }) {
                         ...(loading ? styles.submitBtnDisabled : {}),
                         ...(submitHover && !loading ? styles.submitBtnHover : {}),
                     }}
-                    onClick={handleSubmit}
+                    className="interview-submit"
+                    onClick={() => handleSubmit(false)}
                     disabled={loading}
                     onMouseEnter={() => setSubmitHover(true)}
                     onMouseLeave={() => setSubmitHover(false)}
@@ -239,17 +332,17 @@ function Interview({ sessionData, onFinish }) {
                     {loading ? (
                         <span style={styles.btnContent}>
                             <span style={styles.spinner} />
-                            {questionCount < TOTAL_QUESTIONS ? "Submitting & Loading Next..." : "Submitting & Finishing..."}
+                            {questionCount < totalQuestions ? "Submitting & Loading Next..." : "Submitting & Finishing..."}
                         </span>
                     ) : (
                         <span style={styles.btnContent}>
-                            {questionCount < TOTAL_QUESTIONS ? "Submit & Next →" : "Submit & See Results 🏆"}
+                            {questionCount < totalQuestions ? "Submit & Next →" : "Submit & Continue 🏆"}
                         </span>
                     )}
                 </button>
 
                 {/* Finish Early */}
-                {questionCount < TOTAL_QUESTIONS && (
+                {questionCount < totalQuestions && (
                     <button style={styles.finishEarlyBtn} onClick={handleFinish}>
                         Finish Early 🏁
                     </button>
@@ -551,5 +644,38 @@ const getStyles = (isDark) => ({
         transition: "all 0.25s ease",
     },
 });
+
+/* Inject animations and mobile responsive styles */
+if (typeof document !== "undefined") {
+    const id = "interview-anim-style";
+    if (!document.getElementById(id)) {
+        const s = document.createElement("style");
+        s.id = id;
+        s.textContent = `
+            @keyframes spin { to { transform: rotate(360deg); } }
+            @keyframes fadeInUp {
+                from { opacity: 0; transform: translateY(20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            @media (max-width: 768px) {
+                .interview-container { padding: 16px 12px 60px !important; }
+                .interview-topbar { flex-direction: column !important; align-items: flex-start !important; gap: 16px !important; }
+                .interview-badges { width: 100% !important; justify-content: flex-start !important; }
+                .interview-timer-wrap { align-self: flex-end !important; margin-top: -45px !important; }
+                .interview-qcard { padding: 20px 16px !important; }
+                .interview-qtext { font-size: 15px !important; line-height: 1.5 !important; }
+                .interview-option { padding: 14px 16px !important; font-size: 13px !important; }
+                .interview-textarea { padding: 14px !important; font-size: 14px !important; min-height: 120px !important; }
+                .interview-submit { width: 100% !important; padding: 16px !important; }
+                .interview-intermission { padding: 40px 20px !important; }
+            }
+            @media (max-width: 400px) {
+                .interview-option { padding: 12px !important; gap: 10px !important; }
+                .interview-intermission h2 { font-size: 22px !important; }
+            }
+        `;
+        document.head.appendChild(s);
+    }
+}
 
 export default Interview;

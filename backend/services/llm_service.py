@@ -405,7 +405,7 @@ CRITICAL RULES:
 6. Do NOT include any text outside the JSON. No explanations, no markdown."""
 
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="qwen/qwen3.8-27b",
         messages=[
             {"role": "system", "content": f"You are a senior {skill} technical interviewer at a top tech company. You have 10+ years of experience interviewing candidates. You ask clear, precise, and practical questions that test real understanding — not trivia or trick questions. You MUST return ONLY valid JSON. No markdown code blocks, no extra text before or after the JSON."},
             {"role": "user", "content": prompt}
@@ -506,7 +506,7 @@ Strict Rules:
 - Return ONLY the question text itself. No numbering, no prefix, no quotes."""
 
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="qwen/qwen3.8-27b",
         messages=[
             {"role": "system", "content": f"You are an expert {skill} technical interviewer. Ask a highly relevant, extremely clear interview question. Max 1-2 sentences."},
             {"role": "user", "content": prompt}
@@ -589,7 +589,7 @@ CORRECT_ANSWER: [ideal answer in 2-3 sentences]
 WEAK_AREAS: [topics to improve, comma separated]"""
 
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="qwen/qwen3.8-27b",
         messages=[{"role": "user", "content": prompt}],
         temperature=0.3,
         max_tokens=500,
@@ -657,14 +657,22 @@ def generate_final_report(answers: list, skill: str, level: str, user_name: str)
     if total_questions == 0:
         return _empty_report(skill, level, user_name)
 
-    # Calculate category averages from per-answer scores
-    categories = {
+    has_tech = any(a.get("question_type") in ["mcq", "descriptive"] for a in answers)
+    has_hr = any(a.get("question_type") == "hr" for a in answers)
+
+    tech_categories = {
         "technical_knowledge": [],
         "concept_understanding": [],
         "problem_solving": [],
         "communication": [],
         "confidence": [],
         "clarity": [],
+    }
+    hr_categories = {
+        "situation": [],
+        "task": [],
+        "action": [],
+        "result": [],
     }
 
     all_scores = []
@@ -676,10 +684,14 @@ def generate_final_report(answers: list, skill: str, level: str, user_name: str)
         score = a.get("score", 0)
         all_scores.append(score)
 
-        # Collect category scores
-        for cat in categories:
-            val = a.get(cat, 5)
-            categories[cat].append(val)
+        if a.get("question_type") == "hr":
+            for cat in hr_categories:
+                val = a.get(cat, 5)
+                hr_categories[cat].append(val)
+        else:
+            for cat in tech_categories:
+                val = a.get(cat, 5)
+                tech_categories[cat].append(val)
 
         # Track weak areas
         for w in a.get("weak_areas", []):
@@ -698,11 +710,17 @@ def generate_final_report(answers: list, skill: str, level: str, user_name: str)
     total_scored = sum(all_scores)
     overall_percentage = round((total_scored / max_possible) * 100) if max_possible > 0 else 0
 
-    # Calculate category percentages (out of 100)
     category_scores = {}
-    for cat, values in categories.items():
-        avg = sum(values) / len(values) if values else 5
-        category_scores[cat] = round(avg * 10)  # Convert 1-10 to percentage
+    if has_tech:
+        for cat, values in tech_categories.items():
+            avg = sum(values) / len(values) if values else 5
+            category_scores[cat] = round(avg * 10)
+
+    hr_scores = {}
+    if has_hr:
+        for cat, values in hr_categories.items():
+            avg = sum(values) / len(values) if values else 5
+            hr_scores[cat] = round(avg * 10)
 
     # Build strengths list (top performing topics)
     strengths = []
@@ -728,6 +746,9 @@ def generate_final_report(answers: list, skill: str, level: str, user_name: str)
         "total_score": total_scored,
         "overall_percentage": overall_percentage,
         "category_scores": category_scores,
+        "hr_scores": hr_scores,
+        "has_tech": has_tech,
+        "has_hr": has_hr,
         "strengths": strengths,
         "areas_to_improve": areas_to_improve,
         "recommended_topics": recommendations,
@@ -750,7 +771,7 @@ No extra text, just the JSON array."""
 
     try:
         response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="qwen/qwen3.8-27b",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.3,
             max_tokens=150,
@@ -771,6 +792,7 @@ No extra text, just the JSON array."""
 
 def _empty_report(skill, level, user_name):
     """Return an empty report structure."""
+    is_hr = (skill == "HR")
     return {
         "user_name": user_name,
         "skill": skill,
@@ -779,6 +801,8 @@ def _empty_report(skill, level, user_name):
         "total_score": 0,
         "overall_percentage": 0,
         "category_scores": {
+            "situation": 0, "task": 0, "action": 0, "result": 0
+        } if is_hr else {
             "technical_knowledge": 0,
             "concept_understanding": 0,
             "problem_solving": 0,
@@ -791,3 +815,96 @@ def _empty_report(skill, level, user_name):
         "recommended_topics": [],
         "answers": [],
     }
+
+# ═══════════════════════════════════════════════════════════════
+# HR BEHAVIORAL ROUND
+# ═══════════════════════════════════════════════════════════════
+
+HR_QUESTIONS_POOL = [
+    "Tell me about yourself.",
+    "Describe a challenge you overcame.",
+    "Where do you see yourself in 5 years?",
+    "Tell me about a time you worked in a team.",
+    "What is your greatest weakness?",
+    "Why should we hire you?",
+    "Describe your biggest achievement.",
+    "How do you handle pressure?",
+    "Tell me about a conflict with a colleague.",
+    "What motivates you?"
+]
+
+def generate_hr_question(asked_questions: list = None, seed: int = None):
+    """Generate an HR/Behavioral question."""
+    if asked_questions is None:
+        asked_questions = []
+    
+    available = [q for q in HR_QUESTIONS_POOL if q not in asked_questions]
+    if not available:
+        available = HR_QUESTIONS_POOL
+        
+    rng = random.Random(seed if seed else random.randint(1, 999999))
+    return rng.choice(available)
+
+def evaluate_hr_answer(question: str, answer: str):
+    """Evaluate an HR answer using the STAR method."""
+    prompt = f"""You are an expert HR Manager evaluating a candidate's behavioral answer using the STAR method.
+
+Question: {question}
+Candidate's Answer: {answer}
+
+Evaluate on the STAR framework (score each 1-10):
+S = Situation (Did they describe context?)
+T = Task (Did they explain their role/challenge?)
+A = Action (Did they explain what they did?)
+R = Result (Did they mention the outcome?)
+
+Return in this EXACT format (one per line):
+SCORE: [overall score 1-10]
+SITUATION: [1-10]
+TASK: [1-10]
+ACTION: [1-10]
+RESULT: [1-10]
+FEEDBACK: [2-3 sentences of constructive feedback]
+MISSING: [what was missing from STAR]
+TIP: [one tip to improve answer]"""
+
+    response = client.chat.completions.create(
+        model="qwen/qwen3.8-27b",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.3,
+        max_tokens=400,
+    )
+    
+    text = response.choices[0].message.content.strip()
+    lines = text.split('\n')
+    result = {
+        "score": 5, "situation": 5, "task": 5, "action": 5, "result": 5,
+        "feedback": "", "missing": "", "tip": ""
+    }
+
+    field_map = {
+        "SCORE:": "score",
+        "SITUATION:": "situation",
+        "TASK:": "task",
+        "ACTION:": "action",
+        "RESULT:": "result",
+        "FEEDBACK:": "feedback",
+        "MISSING:": "missing",
+        "TIP:": "tip",
+    }
+
+    for line in lines:
+        line = line.strip()
+        for prefix, key in field_map.items():
+            if line.upper().startswith(prefix):
+                value = line[len(prefix):].strip()
+                if key in ["score", "situation", "task", "action", "result"]:
+                    try:
+                        result[key] = min(10, max(1, int(re.search(r'\d+', value).group())))
+                    except:
+                        result[key] = 5
+                else:
+                    result[key] = value
+                break
+
+    return result

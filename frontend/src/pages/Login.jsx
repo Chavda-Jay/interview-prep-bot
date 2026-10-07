@@ -115,17 +115,17 @@ function Login({ onSuccess }) {
             <div style={styles.orb2} />
             <div style={styles.gridPattern} />
 
-            <div style={styles.container}>
+            <div style={styles.container} className="login-container">
                 <div style={styles.header}>
-                    <h1 style={styles.title}>
+                    <h1 style={styles.title} className="login-title">
                         Interview<span style={styles.titleAccent}>AI</span>
                     </h1>
-                    <p style={styles.subtitle}>
+                    <p style={styles.subtitle} className="login-subtitle">
                         {isForgot ? "Reset your password" : isRegister ? "Create your account" : "Welcome back!"}
                     </p>
                 </div>
 
-                <div style={styles.card}>
+                <div style={styles.card} className="login-card">
                     {!isForgot && (
                         <div style={styles.tabs}>
                             <button
@@ -154,6 +154,7 @@ function Login({ onSuccess }) {
                             <label style={styles.label}>Full Name</label>
                             <input
                                 style={styles.input}
+                                className="login-input"
                                 placeholder="John Doe"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
@@ -166,6 +167,7 @@ function Login({ onSuccess }) {
                         <label style={styles.label}>Email</label>
                         <input
                             style={styles.input}
+                            className="login-input"
                             type="email"
                             placeholder="john@example.com"
                             value={email}
@@ -179,6 +181,7 @@ function Login({ onSuccess }) {
                         <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
                             <input
                                 style={{ ...styles.input, paddingRight: "40px" }}
+                                className="login-input"
                                 type={showPassword ? "text" : "password"}
                                 placeholder="••••••••"
                                 value={password}
@@ -241,6 +244,7 @@ function Login({ onSuccess }) {
                             ...styles.btn,
                             ...(loading ? styles.btnDisabled : {}),
                         }}
+                        className="login-btn"
                         onClick={handleSubmit}
                         disabled={loading}
                     >
@@ -438,5 +442,26 @@ const getStyles = (isDark) => ({
         animation: "spin 0.7s linear infinite",
     },
 });
+
+/* Inject animations and mobile responsive styles */
+if (typeof document !== "undefined") {
+    const id = "login-anim-style";
+    if (!document.getElementById(id)) {
+        const s = document.createElement("style");
+        s.id = id;
+        s.textContent = `
+            @keyframes spin { to { transform: rotate(360deg); } }
+            @media (max-width: 480px) {
+                .login-container { padding: 16px !important; }
+                .login-card { padding: 24px 16px !important; }
+                .login-title { font-size: 32px !important; }
+                .login-subtitle { font-size: 14px !important; }
+                .login-input { font-size: 14px !important; padding: 12px 14px !important; }
+                .login-btn { font-size: 14px !important; padding: 14px !important; }
+            }
+        `;
+        document.head.appendChild(s);
+    }
+}
 
 export default Login;

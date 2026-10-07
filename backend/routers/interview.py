@@ -9,6 +9,8 @@ from services.llm_service import (
     evaluate_descriptive_answer,
     generate_final_report,
     get_question_schedule,
+    generate_hr_question,
+    evaluate_hr_answer
 )
 import uuid
 from datetime import datetime
@@ -29,10 +31,13 @@ class SubmitAnswerRequest(BaseModel):
     question: str
     user_answer: str
     skill: str
-    question_type: str  # "mcq" or "descriptive"
+    question_type: str  # "mcq" or "descriptive" or "hr"
     # MCQ-specific fields
     options: Optional[List[str]] = None
     correct_answer: Optional[str] = None  # The correct letter (A/B/C/D)
+
+class StartHRInterviewRequest(BaseModel):
+    user_name: str
 
 
 @router.post("/start")
@@ -278,6 +283,36 @@ def end_interview(session_id: str):
     )
     return {"message": "Interview completed!", "session_id": session_id}
 
+@router.post("/add-hr-round/{session_id}")
+def add_hr_round(session_id: str):
+    db = get_db()
+    session = db["sessions"].find_one({"session_id": session_id})
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    # We add 8 HR questions to the session
+    current_asked = len(session.get("questions_asked", []))
+    new_total = current_asked + 8
+    
+    db["sessions"].update_one(
+        {"session_id": session_id},
+        {"$set": {"total_questions": new_total, "status": "active", "has_hr_round": True}}
+    )
+    
+    question_text = generate_hr_question(session.get("questions_asked", []), session.get("session_seed", 0))
+    
+    db["sessions"].update_one(
+        {"session_id": session_id},
+        {"$push": {"questions_asked": question_text}},
+    )
+    
+    return {
+        "session_id": session_id,
+        "question": question_text,
+        "question_type": "hr",
+        "question_number": len(session.get("questions_asked", [])) + 1,
+    }
+
     
 @router.get("/memory/{user_name}")
 def get_memory(user_name: str):
@@ -287,3 +322,90 @@ def get_memory(user_name: str):
     if not progress:
         return {"exists": False}
     return {"exists": True, **progress}
+
+@router.post("/hr/start")
+def start_hr_interview(request: StartHRInterviewRequest):
+    db = get_db()
+    session_seed = random.randint(1, 999999)
+    total_questions = 8
+    
+    session = {
+        "session_id": str(uuid.uuid4()),
+        "user_name": request.user_name,
+        "skill": "HR",
+        "level": "All",
+        "session_type": "hr",
+        "total_questions": total_questions,
+        "session_seed": session_seed,
+        "started_at": datetime.utcnow(),
+        "status": "active",
+        "questions_asked": [],
+        "score": 0,
+    }
+    db["sessions"].insert_one(session)
+    
+    question_text = generate_hr_question([], session_seed)
+    
+    db["sessions"].update_one(
+        {"session_id": session["session_id"]},
+        {"$push": {"questions_asked": question_text}},
+    )
+    
+    return {
+        "session_id": session["session_id"],
+        "message": "HR Interview started!",
+        "question": question_text,
+        "question_type": "hr",
+        "skill": "HR",
+        "level": "All",
+        "total_questions": total_questions,
+        "question_number": 1,
+    }
+
+@router.post("/hr/submit-answer")
+def submit_hr_answer(request: SubmitAnswerRequest):
+    db = get_db()
+    session = db["sessions"].find_one({"session_id": request.session_id})
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+        
+    evaluation = evaluate_hr_answer(request.question, request.user_answer)
+    
+    answer_doc = {
+        "session_id": request.session_id,
+        "question": request.question,
+        "user_answer": request.user_answer,
+        "question_type": "hr",
+        "score": evaluation["score"],
+        "situation": evaluation["situation"],
+        "task": evaluation["task"],
+        "action": evaluation["action"],
+        "result": evaluation["result"],
+        "feedback": evaluation["feedback"],
+        "missing": evaluation["missing"],
+        "tip": evaluation["tip"],
+        "answered_at": datetime.utcnow(),
+    }
+    
+    db["answers"].insert_one(answer_doc)
+    db["sessions"].update_one(
+        {"session_id": request.session_id}, {"$inc": {"score": evaluation["score"]}}
+    )
+    
+    question_number = len(session.get("questions_asked", [])) + 1
+    total_questions = session.get("total_questions", 8)
+    
+    next_question = None
+    if question_number <= total_questions:
+        next_question = generate_hr_question(session.get("questions_asked", []), session.get("session_seed", 0))
+        db["sessions"].update_one(
+            {"session_id": request.session_id},
+            {"$push": {"questions_asked": next_question}},
+        )
+    
+    return {
+        "evaluation": evaluation,
+        "next_question": next_question,
+        "question_number": question_number,
+        "is_complete": next_question is None
+    }

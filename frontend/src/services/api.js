@@ -23,6 +23,10 @@ export const getNextQuestion = (sessionId) =>
 // Answer submit karo
 export const submitAnswer = (data) => API.post('/interview/submit-answer', data);
 
+export const startHRInterview = (data) => API.post('/interview/hr/start', data);
+export const submitHRAnswer = (data) => API.post('/interview/hr/submit-answer', data);
+export const addHRRound = (sessionId) => API.post(`/interview/add-hr-round/${sessionId}`);
+
 // Score + Full Report lo
 export const getScore = (sessionId) => API.get(`/feedback/score/${sessionId}`);
 
@@ -34,9 +38,18 @@ export const endInterview = (sessionId) =>
 export const submitAppReview = (data) =>
     API.post(`/feedback/submit_review`, data);
 
+// Download PDF report
+export const getDownloadReportUrl = (sessionId) => {
+    return `${getBaseUrl()}/feedback/report/${sessionId}`;
+};
+
 // User memory fetch karo
 export const getUserMemory = (userName) =>
     API.get(`/interview/memory/${encodeURIComponent(userName)}`);
+
+// Analytics
+export const getAnalytics = (userName) =>
+    API.get(`/feedback/analytics/${encodeURIComponent(userName)}`);
 
 // Auth APIs
 export const registerUser = (data) => API.post('/auth/register', data);
